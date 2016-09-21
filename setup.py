@@ -35,6 +35,7 @@ class install_with_kernelspec(install):
         print("user")
         print(self.user)
         with open('/usr/local/bin/iwolfram-mathkernel.sh') as f:
+            os.chmod(f, 0o755) 
             write("#!/bin/sh\n\n")
             write("# sh envelopment for the true math command ")
             write("necesary to avoid the kernel hangs on jupyterhub ")
