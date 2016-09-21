@@ -5,7 +5,6 @@ from setuptools import setup
 from setuptools.command.install import install
 from distutils import log
 from IPython.utils.tempdir import TemporaryDirectory
-from wolfram_kernel.wolfram_kernel import WolframKernel
 
 
 import json
@@ -20,30 +19,52 @@ except ImportError:
    
 print(sys.argv)
 if "--help" in sys.argv:
-    print('setup install|build --mma-exec <path to mathematica executable>')
+    print('setup install|build --mma-exec <path to mathematica executable> --iwolfram-mathkernel-path <path to store the caller>')
 
 wmmexec = 'math'
+wmmcaller = '/usr/local/bin/iwolfram-mathkernel-caller.sh'
 if "--mma-exec" in sys.argv:
     idx = sys.argv.index("--mma-exec")
     sys.argv.pop(idx)
     wmmexec = sys.argv.pop(idx) 
 
+if "--iwolfram-mathkernel-path" in sys.argv:
+    idx = sys.argv.index("--iwolfram-mathkernel-path")
+    sys.argv.pop(idx)
+    wmmcaller = sys.argv.pop(idx) 
+
+
+
+
+
+
+
 
 class install_with_kernelspec(install):
     def run(self):
-        kernel_json = WolframKernel.kernel_json        
         print("user")
         print(self.user)
-        with open('/usr/local/bin/iwolfram-mathkernel.sh') as f:
-            os.chmod(f, 0o755) 
-            write("#!/bin/sh\n\n")
-            write("# sh envelopment for the true math command ")
-            write("necesary to avoid the kernel hangs on jupyterhub ")
-            write(wolfram_mathematica_exec_command + " $@\n\n")
+        with open(wmmcaller,'w') as f:
+            f.write("#!/bin/sh\n\n")
+            f.write("# sh envelopment for the true math command ")
+            f.write("necesary to avoid the kernel hangs on jupyterhub ")
+            f.write(wmmexec + " $@\n\n")
+        os.chmod(wmmcaller, 0o755) 
+        with open('wolfram_kernel/wolfram_kernel.py_','r') as f:
+            wolfram_kernel_template = f.read()
+
+        wolfram_kernel_template.replace('{wolfram-caller-script-path}',wmmcaller)
+
+        with open('wolfram_kernel/wolfram_kernel.py','w') as f:
+            f.write(wolfram_kernel_template)
 
 
         install.run(self)
+
         print("Installing kernel spec")        
+
+        from wolfram_kernel.wolfram_kernel import WolframKernel
+        kernel_json = WolframKernel.kernel_json        
         with TemporaryDirectory() as td:        
             os.chmod(td, 0o755)  # Starts off as 700, not user readable
             with open(os.path.join(td, 'kernel.json'), 'w') as f:
