@@ -10,7 +10,7 @@ import os
 import sys
 import tempfile
 
-from wolfram_kernel.config import wolfram_mathematica_exec_command
+
 
 __version__ = '0.0.0'
 
@@ -22,7 +22,7 @@ class WolframKernel(ProcessMetaKernel):
     language_version = '10.0',
     banner = "Wolfram Mathematica Kernel"
     language_info = {
-        'exec': wolfram_mathematica_exec_command,
+        'exec': '/usr/local/bin/iwolfram-mathkernel.sh',
         'mimetype': 'text/x-mathics',
         'name': 'wolfram_kernel',
         'file_extension': '.m',

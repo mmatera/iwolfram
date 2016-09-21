@@ -32,12 +32,14 @@ if "--mma-exec" in sys.argv:
 class install_with_kernelspec(install):
     def run(self):
         kernel_json = WolframKernel.kernel_json        
+        print("user")
+        print(self.user)
+        with open('/usr/local/bin/iwolfram-mathkernel.sh') as f:
+            write("#!/bin/sh\n\n")
+            write("# sh envelopment for the true math command ")
+            write("necesary to avoid the kernel hangs on jupyterhub ")
+            write(wolfram_mathematica_exec_command + " $@\n\n")
 
-        with open('wolfram_kernel/config.py','w') as f:
-            f.write("# Configuration for the kernel\n")
-            f.write('wolfram_mathematica_exec_command=\"' + wmmexec + '\" \n')
-            f.write('')
-        os.chmod('wolfram_kernel/config.py', 0o711)
 
         install.run(self)
         print("Installing kernel spec")        
