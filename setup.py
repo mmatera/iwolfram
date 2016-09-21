@@ -21,8 +21,8 @@ print(sys.argv)
 if "--help" in sys.argv:
     print('setup install|build --mma-exec <path to mathematica executable> --iwolfram-mathkernel-path <path to store the caller>')
 
-wmmexec = 'math'
-wmmcaller = '/usr/local/bin/iwolfram-mathkernel-caller.sh'
+wmmexec = '/usr/local/bin/math'
+wmmcaller = '/usr/local/bin/math-with-log.sh'
 if "--mma-exec" in sys.argv:
     idx = sys.argv.index("--mma-exec")
     sys.argv.pop(idx)
@@ -47,13 +47,13 @@ class install_with_kernelspec(install):
         with open(wmmcaller,'w') as f:
             f.write("#!/bin/sh\n\n")
             f.write("# sh envelopment for the true math command ")
-            f.write("necesary to avoid the kernel hangs on jupyterhub ")
-            f.write(wmmexec + " $@\n\n")
+            f.write("necesary to avoid the kernel hangs on jupyterhub\n\n\n ")
+            f.write(wmmexec + " $@")
         os.chmod(wmmcaller, 0o755) 
         with open('wolfram_kernel/wolfram_kernel.py_','r') as f:
             wolfram_kernel_template = f.read()
 
-        wolfram_kernel_template.replace('{wolfram-caller-script-path}',wmmcaller)
+        wolfram_kernel_template =  wolfram_kernel_template.replace('{wolfram-caller-script-path}',wmmcaller)
 
         with open('wolfram_kernel/wolfram_kernel.py','w') as f:
             f.write(wolfram_kernel_template)
