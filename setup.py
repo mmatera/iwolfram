@@ -22,7 +22,7 @@ if "--help" in sys.argv:
     print('setup install|build --mma-exec <path to mathematica executable> --iwolfram-mathkernel-path <path to store the caller>')
 
 wmmexec = '/usr/local/bin/math'
-wmmcaller = '/usr/local/bin/math-with-log.sh'
+wmmcaller = '/usr/local/bin/iwolframcaller.sh'
 if "--mma-exec" in sys.argv:
     idx = sys.argv.index("--mma-exec")
     sys.argv.pop(idx)
