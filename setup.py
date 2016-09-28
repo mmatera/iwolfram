@@ -28,7 +28,7 @@ print(sys.argv)
 if "--help" in sys.argv:
     print('setup install|build --mma-exec <path to mathematica executable> --iwolfram-mathkernel-path <path to store the caller>')
 
-wmmexec = '/usr/local/bin/math'
+wmmexec = 'mathics'
 wmmcaller = None
 if "--mma-exec" in sys.argv:
     idx = sys.argv.index("--mma-exec")
@@ -46,6 +46,8 @@ if "--iwolfram-mathkernel-path" in sys.argv:
 
 class install_with_kernelspec(install):
     def run(self):
+        global wmmcaller
+        global wmmexec
         print("user")
         print(self.user)
         # Determine if the executable is Wolfram Mathematica or mathics

@@ -27,7 +27,7 @@ class WolframKernel(ProcessMetaKernel):
     language_version = '10.0',
     banner = "Wolfram Mathematica Kernel"
     language_info = {
-        'exec': '{wolfram-caller-script-path}',
+        'exec': mathexec,
         'mimetype': 'text/x-mathics',
         'name': 'wolfram_kernel',
         'file_extension': '.m',
@@ -77,6 +77,7 @@ $DisplayFunction=Identity;
 
 
     _initstringmathics = """
+System`$OutputSizeLimit=1000000000000
 $MyPrePrint:=Module[{fn,res,mathmlstr}, 
 If[#1 === Null, res=\"null:\",
 
@@ -84,7 +85,7 @@ Switch[Head[#1],
           String,
             res=\"string:\"<>#1,
           _,            
-            mathmlstr=ToString[TeXForm[#1]];
+            mathmlstr=ToString[MathMLForm[#1]];
             res=\"mathml:\"<>ToString[StringLength[mathmlstr]]<>\":\"<> mathmlstr<>\":\"<>ToString[InputForm[#1]]
        ]
        ];
@@ -130,17 +131,17 @@ $DisplayFunction=Identity;
         
 
     def makeWrapper(self):
-        """Start a bash shell and return a :class:`REPLWrapper` object.
-        Note that this is equivalent :function:`metakernel.pyexpect.bash`,
-        but is used here as an example of how to be cross-platform.
         """
+	Start a math/mathics kernel and return a :class:`REPLWrapper` object.
+        """
+
         orig_prompt = u('In\[.*\]:=')
         prompt_cmd = None
         change_prompt = None
         self.check_wolfram()
         self.build_initfile()
         
-        if not is_wolfram:
+        if not self.is_wolfram:
             cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" +  self.initfilename + "'"
         else:
             cmdline = self.language_info['exec'] + " -initfile '"+ self.initfilename+"'"
@@ -149,9 +150,6 @@ $DisplayFunction=Identity;
         return replwrapper
 
     def do_execute_direct(self, code):
-        if(self._first):
-#            super(WolframKernel, self).do_execute_direct("Get[\"" + self.initfilename + "\"];$Line=0;")
-            self._first = False
         # Processing multiline code
         codelines = code.splitlines()
         lastline = ""
@@ -178,31 +176,73 @@ $DisplayFunction=Identity;
 
         lineresponse = resp.output.splitlines()
         outputfound = False
-        outputtext = ""
-        for linnum, liner in enumerate(lineresponse):
-            if not outputfound and liner[:4] == "Out[":
-                outputfound = True
-                for pos in range(len(liner) - 4):
-                    if liner[pos + 4] == '=':
-                        outputtext = liner[(pos + 6):]
-                continue
-            if outputfound:
-                if liner == u' ':
-                    if outputtext[-1] == '\\':  # and lineresponse[linnum + 1] == '>':
-                        outputtext = outputtext[:-1]
-                        lineresponse[linnum + 1] = lineresponse[linnum + 1][4:]
+
+        if self.is_wolfram:
+            for linnum, liner in enumerate(lineresponse):
+                if not outputfound and liner[:4] == "Out[":
+                    outputfound = True
+                    for pos in range(len(liner) - 4):
+                        if liner[pos + 4] == ']':
+                            outputtext = liner[(pos + 7):]
+                            break
                         continue
-                outputtext = outputtext + liner
-            else:
-                print(liner)
+                elif outputfound:
+                    if liner == u' ':
+                        if outputtext[-1] == '\\':  # and lineresponse[linnum + 1] == '>':
+                            outputtext = outputtext[:-1]
+                            lineresponse[linnum + 1] = lineresponse[linnum + 1][4:]
+                            continue
+                    outputtext = outputtext + liner
+                else:
+                    print(liner)
+        else:
+            for linnum, liner in enumerate(lineresponse):
+                if not outputfound and liner[:4] == "Out[":
+                    outputfound = True
+                    for pos in range(len(liner) - 4):
+                        if liner[pos + 4] == ']':
+                            outputtext = liner[(pos + 7):]
+                            break
+                        continue
+                elif outputfound:
+                    if liner == u' ':
+                        if outputtext[-1] == '\\':  # and lineresponse[linnum + 1] == '>':
+                            outputtext = outputtext[:-1]
+                            lineresponse[linnum + 1] = lineresponse[linnum + 1][4:]
+                            continue
+                    outputtext = outputtext + liner[7:]
+                else:
+                    print(liner)
+
+
+
+
         if(outputtext[:5] == 'null:'):
             return ""
+        if (outputtext[:7] == 'string:'):
+            return outputtext[7:]
+        if (outputtext[:7] == 'mathml:'):
+            for p in range(len(outputtext) - 7):
+                pp = p + 7
+                if outputtext[pp] == ':':
+                    lentex = int(outputtext[7:pp])
+                    self.Display(HTML(outputtext[(pp + 1):(pp + lentex + 1)]))
+                    return outputtext[(pp + lentex + 2):]
+        if (outputtext[:4] == 'tex:'):
+            for p in range(len(outputtext) - 4):
+                pp = p + 4
+                if outputtext[pp] == ':':
+                    lentex = int(outputtext[4:pp])
+                    self.Display(Latex('$' + outputtext[(pp + 1):(pp + lentex + 1)] + '$'))
+                    return outputtext[(pp + lentex + 2):]
+
         if(outputtext[:4] == 'svg:'):
             for p in range(len(outputtext) - 4):
                 pp = p + 4
                 if outputtext[pp] == ':':
                     self.Display(SVG(outputtext[4:pp]))
                     return outputtext[(pp + 1):]
+
         if(outputtext[:6] == 'image:'):
             for p in range(len(outputtext) - 6):
                 pp = p + 6
@@ -214,38 +254,9 @@ $DisplayFunction=Identity;
             for p in range(len(outputtext) - 6):
                 pp = p + 6
                 if outputtext[pp] == ':':
-#                    htmlstr = "<audio controls> <source src=\""
-#                    htmlstr = htmlstr + outputtext[6:pp]
-#                    htmlstr = htmlstr + "\" type=\"audio/wav\">"
-#                    htmlstr = htmlstr + "Your browser does not support the audio element."
-#                    htmlstr = htmlstr + "</audio>"
-#                    self.Display(HTML(htmlstr))
                     self.Display(Audio(url=outputtext[6:pp], autoplay=False, embed=True))
-#                    self.Display("html source: " + htmlstr)
                     return outputtext[(pp + 1):]
-        if (outputtext[:7] == 'string:'):
-            return outputtext[7:]
-        if (outputtext[:4] == 'tex:'):
-            for p in range(len(outputtext) - 4):
-                pp = p + 4
-                if outputtext[pp] == ':':
-                    lentex = int(outputtext[4:pp])
-                    self.Display(Latex('$' + outputtext[(pp + 1):(pp + lentex + 1)] + '$'))
-                    return outputtext[(pp + lentex + 2):]
 
-#        if self.plot_settings.get('backend', None) == 'inline':
-#            plot_dir = tempfile.mkdtemp()
-#            self._make_figs(plot_dir)
-#            for fname in os.listdir(plot_dir):
-#                filename = os.path.join(plot_dir, fname)
-#                try:
-#                    if fname.lower().endswith('.svg'):
-#                        im = SVG(filename)
-#                    else:
-#                        im = Image(filename)
-#                    self.Display(im)
-#                except Exception as e:
-#                    self.Error(e)
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
         obj = info.get('help_obj', '')
@@ -268,15 +279,7 @@ $DisplayFunction=Identity;
         pass
 
     def _make_figs(self, plot_dir):
-            oldcmd = """
-            figHandles = get(0, 'children');
-            for fig=1:length(figHandles);
-                h = figHandles(fig);
-                filename = fullfile('%s', ['MathicsFig', sprintf('%%03d', fig)]);
-                saveas(h, [filename, '.%s']);
-                close(h);
-            end;
-            """ % (plot_dir, self._plot_fmt)
+        pass
 
 if __name__ == '__main__':
 #    from ipykernel.kernelapp import IPKernelApp
