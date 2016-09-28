@@ -109,14 +109,14 @@ $DisplayFunction=Identity;
         starttext = os.popen("bash -c 'echo |" +  self.language_info['exec']  +"'").read()
         if starttext[:11] == "Mathematica":			      
             self.is_wolfram = True
-	else:
+        else:
             self.is_wolfram = False
         return self.is_wolfram
             
 
     def build_initfile(self):
         if self.is_wolfram:
-	    self._initstring = self._initstringwolfram
+            self._initstring = self._initstringwolfram
         else:
             self._initstring = self._initstringmathics
         self._first = True
@@ -138,7 +138,7 @@ $DisplayFunction=Identity;
         prompt_cmd = None
         change_prompt = None
         self.check_wolfram()
-	self.build_initfile()
+        self.build_initfile()
         
         if not is_wolfram:
             cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" +  self.initfilename + "'"

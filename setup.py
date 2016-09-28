@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import os, sys
-from setuptools import setup
+from distutils.core import setup
 from setuptools.command.install import install
 from distutils import log
 from IPython.utils.tempdir import TemporaryDirectory
@@ -16,13 +16,20 @@ try:
 except ImportError:
     from IPython.kernel.kernelspec import install_kernel_spec
 
+
+def subdirs(root, file='*.*', depth=10):
+    for k in range(depth):
+        yield root + '*/' * k + file
+
+
+# Reads the specific command line arguments
    
 print(sys.argv)
 if "--help" in sys.argv:
     print('setup install|build --mma-exec <path to mathematica executable> --iwolfram-mathkernel-path <path to store the caller>')
 
 wmmexec = '/usr/local/bin/math'
-wmmcaller = '/usr/local/bin/iwolframcaller.sh'
+wmmcaller = None
 if "--mma-exec" in sys.argv:
     idx = sys.argv.index("--mma-exec")
     sys.argv.pop(idx)
@@ -37,32 +44,36 @@ if "--iwolfram-mathkernel-path" in sys.argv:
 
 
 
-
-
-
 class install_with_kernelspec(install):
     def run(self):
         print("user")
         print(self.user)
-        with open(wmmcaller,'w') as f:
-            f.write("#!/bin/sh\n\n")
-            f.write("# sh envelopment for the true math command ")
-            f.write("necesary to avoid the kernel hangs on jupyterhub\n\n\n ")
-            f.write(wmmexec + " $@")
-        os.chmod(wmmcaller, 0o755) 
-        with open('wolfram_kernel/wolfram_kernel.py_','r') as f:
-            wolfram_kernel_template = f.read()
+        # Determine if the executable is Wolfram Mathematica or mathics
+        starttext = os.popen("bash -c 'echo |" +  wmmexec  +"'").read()
+        if starttext[:11] == "Mathematica":
+            wmmcaller = '/usr/local/bin/iwolframcaller.sh'
+        if not wmmcaller  is None:
+            with open(wmmcaller,'w') as f:
+                f.write("#!/bin/sh\n\n")
+                f.write("# sh envelopment for the true math command ")
+                f.write("necesary to avoid the kernel hangs on jupyterhub\n\n\n ")
+                f.write(wmmexec + " $@")
+            os.chmod(wmmcaller, 0o755)
+        else:
+            wmmcaller = wmmexec
 
-        wolfram_kernel_template =  wolfram_kernel_template.replace('{wolfram-caller-script-path}',wmmcaller)
+        # Build the configuration file
+        configfilestr = "# iwolfram configuration file\nmathexec = '{wolfram-caller-script-path}'\n\n"
+        configfilestr = configfilestr.replace('{wolfram-caller-script-path}',wmmcaller)
+        with open('wolfram_kernel/config.py','w') as f:
+            f.write(configfilestr)
 
-        with open('wolfram_kernel/wolfram_kernel.py','w') as f:
-            f.write(wolfram_kernel_template)
-
-
+        #Run the standard intallation
         install.run(self)
 
         print("Installing kernel spec")        
 
+        #Build and Install the kernelspec
         from wolfram_kernel.wolfram_kernel import WolframKernel
         kernel_json = WolframKernel.kernel_json        
         with TemporaryDirectory() as td:        
@@ -83,14 +94,22 @@ class install_with_kernelspec(install):
 
 setup(name='wolfram_kernel',
       version='0.11.3',
-      description='A Wolfram Mathematica kernel for Jupyter/IPython',
-      long_description='A Wolfram Mathematica kernel for Jupyter/IPython, based on MetaKernel',
+      description='A Wolfram Mathematica/mathics kernel for Jupyter/IPython',
+      long_description='A Wolfram Mathematica/mathics kernel for Jupyter/IPython, based on MetaKernel',
       url='https://github.com/matera/iwolfram/tree/master/iwolfram',
       author='Juan Mauricio Matera',
       author_email='matera@fisica.unlp.edu.ar',
-      packages=['wolfram_kernel'],
+      packages=['wolfram_kernel','wolfram_kernel.web'],
       cmdclass={'install': install_with_kernelspec},
       install_requires=['metakernel'],
+      package_data={
+        'wolfram_kernel.web': [
+            'media/css/*.css', 'media/img/*.gif',
+            'media/js/innerdom/*.js', 'media/js/prototype/*.js',
+            'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
+            'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
+            'templates/doc/*.html'] + list(subdirs('media/js/mathjax/')),   
+      },
       classifiers = [
           'Framework :: IPython',
           'License :: OSI Approved :: BSD License',
