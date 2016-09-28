@@ -10,9 +10,14 @@ import os
 import sys
 import tempfile
 
-
-
 __version__ = '0.0.0'
+
+try:
+    from .config import mathexec
+except Exception:
+    mathexec = "mathics"
+
+
 
 
 class WolframKernel(ProcessMetaKernel):
@@ -41,8 +46,8 @@ class WolframKernel(ProcessMetaKernel):
     def repr(self, data):
         return data
 
-    _initstring = """
-$MyPrePrint:=Module[{fn,res}, 
+    _initstringwolfram = """
+$MyPrePrint:=Module[{fn,res,texstr}, 
 If[#1 === Null, res=\"null:\",
 
 Switch[Head[#1],
@@ -70,6 +75,24 @@ Switch[Head[#1],
 $DisplayFunction=Identity;
 """
 
+
+    _initstringmathics = """
+$MyPrePrint:=Module[{fn,res,mathmlstr}, 
+If[#1 === Null, res=\"null:\",
+
+Switch[Head[#1],
+          String,
+            res=\"string:\"<>#1,
+          _,            
+            mathmlstr=ToString[TeXForm[#1]];
+            res=\"mathml:\"<>ToString[StringLength[mathmlstr]]<>\":\"<> mathmlstr<>\":\"<>ToString[InputForm[#1]]
+       ]
+       ];
+       res
+    ]&;
+$DisplayFunction=Identity;
+"""
+
     _session_dir = ""
     _first = True
     initfilename = ""
@@ -82,15 +105,20 @@ $DisplayFunction=Identity;
             self._banner = u(banner)
         return self._banner
 
-    def makeWrapper(self):
-        """Start a bash shell and return a :class:`REPLWrapper` object.
-        Note that this is equivalent :function:`metakernel.pyexpect.bash`,
-        but is used here as an example of how to be cross-platform.
-        """
-        orig_prompt = u('In\[.*\]:=')
-        prompt_cmd = None
-        change_prompt = None
+    def check_wolfram(self):
+        starttext = os.popen("bash -c 'echo |" +  self.language_info['exec']  +"'").read()
+        if starttext[:11] == "Mathematica":			      
+            self.is_wolfram = True
+	else:
+            self.is_wolfram = False
+        return self.is_wolfram
+            
 
+    def build_initfile(self):
+        if self.is_wolfram:
+	    self._initstring = self._initstringwolfram
+        else:
+            self._initstring = self._initstringmathics
         self._first = True
         self._session_dir = tempfile.mkdtemp()
         self._initstring = self._initstring.replace("{sessiondir}", self._session_dir)
@@ -99,21 +127,25 @@ $DisplayFunction=Identity;
         f = open(self.initfilename, 'w')
         f.write(self._initstring)
         f.close()
-        if self.language_info['exec'] == 'mathics':
-            replwrapper = REPLWrapper("mathics --colors NOCOLOR", orig_prompt, change_prompt,
-                           prompt_emit_cmd=prompt_cmd, echo=True)
+        
+
+    def makeWrapper(self):
+        """Start a bash shell and return a :class:`REPLWrapper` object.
+        Note that this is equivalent :function:`metakernel.pyexpect.bash`,
+        but is used here as an example of how to be cross-platform.
+        """
+        orig_prompt = u('In\[.*\]:=')
+        prompt_cmd = None
+        change_prompt = None
+        self.check_wolfram()
+	self.build_initfile()
+        
+        if not is_wolfram:
+            cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" +  self.initfilename + "'"
         else:
             cmdline = self.language_info['exec'] + " -initfile '"+ self.initfilename+"'"
-            ff = open("/tmp/replwrapperIn",'w')
-            ff.write( cmdline)
-            ff.close()
-  
-            replwrapper = REPLWrapper(cmdline, orig_prompt, change_prompt,
-                           prompt_emit_cmd=prompt_cmd, echo=True)
-            ff = open("/tmp/replwrapperOKout",'w')
-            ff.write("OK\n")
-            ff.close()
-            print ("repl loaded")
+        replwrapper = REPLWrapper(cmdline, orig_prompt, change_prompt,
+                                  prompt_emit_cmd=prompt_cmd, echo=True)
         return replwrapper
 
     def do_execute_direct(self, code):
