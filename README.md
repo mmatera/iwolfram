@@ -5,6 +5,22 @@ Jupyter Interface for Wolfram Mathematica / Mathics Noteboos based on Metakernel
 By now is just a proof of concept.
 
 
+Contributing
+------------
+
+Please feel encouraged to contribute to this project! Create your own fork, make the desired changes, commit, and make a pull request.
+
+|Travis|_
+
+.. |Travis| image:: https://secure.travis-ci.org/iwolfram/iwolfram.svg?branch=master
+.. _Travis: https://travis-ci.org/mmatera/iwolfram
+
+License
+-------
+
+Mathics is released under the GNU General Public License (GPL).
+
+
 
 
 
