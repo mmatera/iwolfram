@@ -18,7 +18,7 @@ Please feel encouraged to contribute to this project! Create your own fork, make
 License
 -------
 
-Mathics is released under the GNU General Public License (GPL).
+IWolfram is released under the GNU General Public License (GPL).
 
 
 
