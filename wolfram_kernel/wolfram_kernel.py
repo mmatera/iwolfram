@@ -150,6 +150,20 @@ $DisplayFunction=Identity;
         return replwrapper
 
     def do_execute_direct(self, code):
+        jscode="""
+           if(typeof document.getElementsByID("graphics3dScript")[0] == 'undefined'){
+               var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/static/js/graphics3d.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               //alert("library loaded");
+          }
+        """
+
+        #self.Display(Javascript(jscode))
+
         # Processing multiline code
         codelines = code.splitlines()
         lastline = ""
@@ -176,13 +190,14 @@ $DisplayFunction=Identity;
 
         lineresponse = resp.output.splitlines()
         outputfound = False
-
+        mmaexeccount = -1
         if self.is_wolfram:
             for linnum, liner in enumerate(lineresponse):
                 if not outputfound and liner[:4] == "Out[":
                     outputfound = True
                     for pos in range(len(liner) - 4):
                         if liner[pos + 4] == ']':
+                            mmaexeccount = int(liner[4:(pos + 4)]) - 1
                             outputtext = liner[(pos + 7):]
                             break
                         continue
@@ -201,6 +216,7 @@ $DisplayFunction=Identity;
                     outputfound = True
                     for pos in range(len(liner) - 4):
                         if liner[pos + 4] == ']':
+                            mmaexeccount = int(liner[4:(pos + 4)]) - 1
                             outputtext = liner[(pos + 7):]
                             break
                         continue
@@ -214,7 +230,9 @@ $DisplayFunction=Identity;
                 else:
                     print(liner)
 
-
+        if  mmaexeccount>0:
+            self.execution_count = mmaexeccount
+        
 
 
         if(outputtext[:5] == 'null:'):

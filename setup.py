@@ -24,7 +24,6 @@ def subdirs(root, file='*.*', depth=10):
 
 # Reads the specific command line arguments
    
-print(sys.argv)
 if "--help" in sys.argv:
     print('setup install|build --mma-exec <path to mathematica executable> --iwolfram-mathkernel-path <path to store the caller>')
 
@@ -48,8 +47,6 @@ class install_with_kernelspec(install):
     def run(self):
         global wmmcaller
         global wmmexec
-        print("user")
-        print(self.user)
         # Determine if the executable is Wolfram Mathematica or mathics
         starttext = os.popen("bash -c 'echo |" +  wmmexec  +"'").read()
         if starttext[:11] == "Mathematica":
