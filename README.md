@@ -10,10 +10,7 @@ Contributing
 
 Please feel encouraged to contribute to this project! Create your own fork, make the desired changes, commit, and make a pull request.
 
-|Travis|_
-
-.. |Travis| image:: https://travis-ci.org/mmatera/iwolfram.svg
-.. _Travis: https://travis-ci.org/mmatera/iwolfram
+[![Build Status](https://travis-ci.org/mmatera/iwolfram.svg?branch=master)](https://travis-ci.org/mmatera/iwolfram)
 
 License
 -------
