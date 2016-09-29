@@ -47,7 +47,7 @@ class WolframKernel(ProcessMetaKernel):
         return data
 
     _initstringwolfram = """
-$MyPrePrint:=Module[{fn,res,texstr}, 
+$PrePrint:=Module[{fn,res,texstr}, 
 If[#1 === Null, res=\"null:\",
 
 Switch[Head[#1],
@@ -78,7 +78,7 @@ $DisplayFunction=Identity;
 
     _initstringmathics = """
 System`$OutputSizeLimit=1000000000000
-$MyPrePrint:=Module[{fn,res,mathmlstr}, 
+$PrePrint:=Module[{fn,res,mathmlstr}, 
 If[#1 === Null, res=\"null:\",
 
 Switch[Head[#1],
@@ -185,9 +185,14 @@ $DisplayFunction=Identity;
         else:
             if resp != "":
                 print(resp)
-            # Processing last valid line
-        resp = super(WolframKernel, self).do_execute_direct("$MyPrePrint[" + code + "]")
+        # Processing last valid line
+        ##
+        ## TODO: Implement the functionality of PrePrint in mathics. It would fix also the call for %# as part of expressions.
+        ##
+        if not self.is_wolfram:        
+            code = "$PrePrint[" + code + "]"
 
+        resp = super(WolframKernel, self).do_execute_direct(code)
         lineresponse = resp.output.splitlines()
         outputfound = False
         mmaexeccount = -1
