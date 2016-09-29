@@ -12,7 +12,7 @@ Please feel encouraged to contribute to this project! Create your own fork, make
 
 |Travis|_
 
-.. |Travis| image:: https://secure.travis-ci.org/iwolfram/iwolfram.svg?branch=master
+.. |Travis| image:: https://travis-ci.org/mmatera/iwolfram.svg
 .. _Travis: https://travis-ci.org/mmatera/iwolfram
 
 License
