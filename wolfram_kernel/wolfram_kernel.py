@@ -167,15 +167,19 @@ $DisplayFunction=Identity;
         # Processing multiline code
         codelines = code.splitlines()
         lastline = ""
-        resp = ""
+        resp = None
+        prevcmd = ""
         for codeline in codelines:
             if codeline.strip() == "":
                 lastline = lastline.strip()
                 if lastline == "":
                     continue
-                if resp.strip() != "":
-                    print(resp)
-                resp = self.do_execute_direct(lastline)
+                if not resp is None :
+                    # print(resp)
+                    self.post_execute(resp, prevcmd, False)
+                resp = self.do_execute_direct(lastline)                
+                prevcmd = lastline
+                self.log.warning("executed cmd: '" +  prevcmd + "'")
                 lastline = ""
                 continue
             lastline = lastline + codeline
@@ -183,9 +187,9 @@ $DisplayFunction=Identity;
         if code == "":
             return resp
         else:
-            if resp != "":
-                print(resp)
-        # Processing last valid line
+            if not resp  is None :
+                self.post_execute(resp, prevcmd, False)
+        # Evaluating last valid code line
         ##
         ## TODO: Implement the functionality of PrePrint in mathics. It would fix also the call for %# as part of expressions.
         ##
@@ -193,16 +197,19 @@ $DisplayFunction=Identity;
             code = "$PrePrint[" + code + "]"
 
         resp = super(WolframKernel, self).do_execute_direct(code)
+        self.log.warning("** executed cmd: '" +  code + "'")
+        
         lineresponse = resp.output.splitlines()
         outputfound = False
         mmaexeccount = -1
+        outputtext = "null:"
         if self.is_wolfram:
             for linnum, liner in enumerate(lineresponse):
                 if not outputfound and liner[:4] == "Out[":
                     outputfound = True
                     for pos in range(len(liner) - 4):
                         if liner[pos + 4] == ']':
-                            mmaexeccount = int(liner[4:(pos + 4)]) - 1
+                            mmaexeccount = int(liner[4:(pos + 4)]) 
                             outputtext = liner[(pos + 7):]
                             break
                         continue
@@ -221,7 +228,7 @@ $DisplayFunction=Identity;
                     outputfound = True
                     for pos in range(len(liner) - 4):
                         if liner[pos + 4] == ']':
-                            mmaexeccount = int(liner[4:(pos + 4)]) - 1
+                            mmaexeccount = int(liner[4:(pos + 4)]) 
                             outputtext = liner[(pos + 7):]
                             break
                         continue
@@ -249,8 +256,11 @@ $DisplayFunction=Identity;
                 pp = p + 7
                 if outputtext[pp] == ':':
                     lentex = int(outputtext[7:pp])
-                    self.Display(HTML(outputtext[(pp + 1):(pp + lentex + 1)]))
-                    return outputtext[(pp + lentex + 2):]
+                    fullformtxt = outputtext[(pp + lentex + 2):].replace("\"","\\\"")
+                    htmlstr = outputtext[(pp + 1):(pp + lentex + 1)]                    
+                    htmlstr = "<div onclick='alert(\"" +  fullformtxt   +"\");'>" + htmlstr + "</div>"
+#                    self.Display(HTML(htmlstr))
+                    return HTML(htmlstr)
         if (outputtext[:4] == 'tex:'):
             for p in range(len(outputtext) - 4):
                 pp = p + 4
