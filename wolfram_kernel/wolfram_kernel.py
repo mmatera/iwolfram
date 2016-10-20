@@ -113,7 +113,9 @@ $DisplayFunction=Identity;
         else:
             self.is_wolfram = False
         return self.is_wolfram
-            
+
+    def __init__(self):
+        self.log.warning("initializing class")
 
     def build_initfile(self):
         if self.is_wolfram:
@@ -134,7 +136,7 @@ $DisplayFunction=Identity;
         """
 	Start a math/mathics kernel and return a :class:`REPLWrapper` object.
         """
-
+        self.js_libraries_loaded = False
         orig_prompt = u('In\[.*\]:=')
         prompt_cmd = None
         change_prompt = None
@@ -149,7 +151,9 @@ $DisplayFunction=Identity;
                                   prompt_emit_cmd=prompt_cmd, echo=True)
         return replwrapper
 
-    def do_execute_direct(self, code):
+    def check_js_libraries_loaded(self):
+        if self.js_libraries_loaded:
+            return
         jscode="""
            if(typeof document.getElementsByID("graphics3dScript")[0] == 'undefined'){
                var tagg = document.createElement('script');
@@ -161,9 +165,11 @@ $DisplayFunction=Identity;
                //alert("library loaded");
           }
         """
+        self.Display(Javascript(jscode))        
+        self.js_libraries_loaded = True
 
-        #self.Display(Javascript(jscode))
-
+    def do_execute_direct(self, code):
+        self.check_js_libraries_loaded()
         # Processing multiline code
         codelines = code.splitlines()
         lastline = ""
@@ -179,7 +185,7 @@ $DisplayFunction=Identity;
                     self.post_execute(resp, prevcmd, False)
                 resp = self.do_execute_direct(lastline)                
                 prevcmd = lastline
-                self.log.warning("executed cmd: '" +  prevcmd + "'")
+                self.log.warning("executed cmd: '" +  prevcmd + "')"
                 lastline = ""
                 continue
             lastline = lastline + codeline
