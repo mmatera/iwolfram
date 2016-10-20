@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from metakernel import MetaKernel, ProcessMetaKernel, REPLWrapper, u
 from IPython.display import Image, SVG
-from IPython.display import Latex, HTML
+from IPython.display import Latex, HTML, Javascript
 from IPython.display import Audio
 
 import subprocess
@@ -114,9 +114,20 @@ $DisplayFunction=Identity;
             self.is_wolfram = False
         return self.is_wolfram
 
-    def __init__(self):
+    def __init__(self,*args, **kwargs):
+        super(WolframKernel,self).__init__(*args,**kwargs)
         self.log.warning("initializing class")
 
+    def get_kernel_help_on(self, info, level=0, none_on_fail=False):
+        self.log.warning("help required")
+        if none_on_fail:
+            return None
+        else:
+            return "Sorry, no help is available on '%s'." % info['code']
+
+
+
+        
     def build_initfile(self):
         if self.is_wolfram:
             self._initstring = self._initstringwolfram
@@ -155,15 +166,15 @@ $DisplayFunction=Identity;
         if self.js_libraries_loaded:
             return
         jscode="""
-           if(typeof document.getElementsByID("graphics3dScript")[0] == 'undefined'){
+           if(document.getElementById("graphics3dScript") == null){
                var tagg = document.createElement('script');
                tagg.type = "text/javascript";
                tagg.src = "/static/js/graphics3d.js";
                tagg.charset = 'utf-8';
                tagg.id = "graphics3dScript"
                document.getElementsByTagName("head")[0].appendChild( tagg );
-               //alert("library loaded");
-          }
+               alert("library loaded");
+          }else{alert("library was loaded before");}
         """
         self.Display(Javascript(jscode))        
         self.js_libraries_loaded = True
@@ -185,7 +196,7 @@ $DisplayFunction=Identity;
                     self.post_execute(resp, prevcmd, False)
                 resp = self.do_execute_direct(lastline)                
                 prevcmd = lastline
-                self.log.warning("executed cmd: '" +  prevcmd + "')"
+                self.log.warning("executed cmd: '" +  prevcmd + "')")
                 lastline = ""
                 continue
             lastline = lastline + codeline
