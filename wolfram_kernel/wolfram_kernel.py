@@ -20,6 +20,23 @@ except Exception:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class WolframKernel(ProcessMetaKernel):
     implementation = 'Wolfram Mathematica Kernel'
     implementation_version = __version__,
@@ -54,12 +71,12 @@ Switch[Head[#1],
           String,
             res=\"string:\"<>#1,
           Graphics,            
-            fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".svg\";
-            Export[fn,#1,"SVG"];
-            res=\"svg:\"<>fn<>\":\"<>\"- graphics -\",
+            fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
+            Export[fn,#1,"png"];
+            res=\"image:\"<>fn<>\":\"<>\"- graphics -\",
           Graphics3D,            
-            fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
-            Export[fn,#1,"JPG"];
+            fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
+            Export[fn,#1,"png"];
             res=\"image:\"<>fn<>\":\"<>\"- graphics3d -\",
           Sound,
             fn=\"{sessiondir}/session-sound\"<>ToString[$Line]<>\".wav\";
@@ -126,6 +143,10 @@ $DisplayFunction=Identity;
             return "Sorry, no help is available on '%s'." % info['code']
 
 
+    def show_warning(self,warning):
+        self.send_response(self.iopub_socket, 'error',
+                           {'wait': False, 'name': "ss", 'evalue': warning} )
+
 
         
     def build_initfile(self):
@@ -180,6 +201,7 @@ $DisplayFunction=Identity;
         self.js_libraries_loaded = True
 
     def do_execute_direct(self, code):
+        self.show_warning("algo que decir")
         self.check_js_libraries_loaded()
         # Processing multiline code
         codelines = code.splitlines()
@@ -215,7 +237,11 @@ $DisplayFunction=Identity;
 
         resp = super(WolframKernel, self).do_execute_direct(code)
         self.log.warning("** executed cmd: '" +  code + "'")
-        
+
+        outputtext = self.process_response(resp)
+        return self.postprocess_response(outputtext)
+
+    def process_response(self, resp):        
         lineresponse = resp.output.splitlines()
         outputfound = False
         mmaexeccount = -1
@@ -262,8 +288,10 @@ $DisplayFunction=Identity;
         if  mmaexeccount>0:
             self.execution_count = mmaexeccount
         
+        return(outputtext)
 
 
+    def postprocess_response(self, outputtext):        
         if(outputtext[:5] == 'null:'):
             return ""
         if (outputtext[:7] == 'string:'):
