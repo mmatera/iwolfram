@@ -64,6 +64,13 @@ class WolframKernel(ProcessMetaKernel):
         return data
 
     _initstringwolfram = """
+(*Redefine Print*)
+Unprotect[Print]
+Print[s_] := 
+ WriteString[OutputStream["stdout", 1], 
+  "P:" <> ToString[StringLength[s]] <> ":" <> s]
+Protect[Print]
+
 $PrePrint:=Module[{fn,res,texstr}, 
 If[#1 === Null, res=\"null:\",
 
@@ -89,6 +96,7 @@ Switch[Head[#1],
        ];
        res
     ]&;
+$Messages = {OutputStream["stderr",2]};
 $DisplayFunction=Identity;
 """
 
@@ -201,7 +209,7 @@ $DisplayFunction=Identity;
         self.js_libraries_loaded = True
 
     def do_execute_direct(self, code):
-        self.show_warning("algo que decir")
+        self.show_warning("Hola, tengo algo que decir")
         self.check_js_libraries_loaded()
         # Processing multiline code
         codelines = code.splitlines()
