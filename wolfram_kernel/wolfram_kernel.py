@@ -64,40 +64,65 @@ class WolframKernel(ProcessMetaKernel):
         return data
 
     _initstringwolfram = """
-(*Redefine Print*)
-Unprotect[Print]
-Print[s_] := 
- WriteString[OutputStream["stdout", 1], 
-  "P:" <> ToString[StringLength[s]] <> ":" <> s]
-Protect[Print]
-
-$PrePrint:=Module[{fn,res,texstr}, 
-If[#1 === Null, res=\"null:\",
-
-Switch[Head[#1],
-          String,
-            res=\"string:\"<>#1,
-          Graphics,            
-            fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
-            Export[fn,#1,"png"];
-            res=\"image:\"<>fn<>\":\"<>\"- graphics -\",
-          Graphics3D,            
-            fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
-            Export[fn,#1,"png"];
-            res=\"image:\"<>fn<>\":\"<>\"- graphics3d -\",
-          Sound,
-            fn=\"{sessiondir}/session-sound\"<>ToString[$Line]<>\".wav\";
-            Export[fn,#1,"wav"];
-            res=\"sound:\"<>fn<>\":\"<>\"- sound -\",
-          _,            
-            texstr=StringReplace[ToString[TeXForm[#1]],\"\\n\"->\" \"];
-            res=\"tex:\"<>ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]]
-       ]
-       ];
-       res
-    ]&;
-$Messages = {OutputStream["stderr",2]};
+(* ::Package:: *)
+BeginPackage[\"Jupyter`\"];
+(* Process the output *)
+  System`$OutputSizeLimit=Infinity;
+$PrePrint:=Module[{fn,res,texstr},
+		  If[#1 === Null, res=\"null:\",
+		     Switch[Head[#1],
+			    String,
+			    res=\"string:\"<>#1,
+			    Graphics,
+			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
+			    Export[fn,#1,\"png\"];
+			    res=\"image:\"<>fn<>\":\"<>\"- graphics -\",
+			    Graphics3D,
+			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
+			    Export[fn,#1,\"png\"];
+			    res=\"image:\"<>fn<>\":\"<>\"- graphics3d -\",
+			    Sound,
+			    fn=\"{sessiondir}/session-sound\"<>ToString[$Line]<>\".wav\";
+			    Export[fn,#1,\"wav\"];
+			    res=\"sound:\"<>fn<>\":\"<>\"- sound -\",
+			    _,
+			    texstr=StringReplace[ToString[TeXForm[#1]],\"\n\"->\" \"];
+			    res=\"tex:\"<>ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]]
+			    ]
+		     ];
+		  res
+		  ]&;
 $DisplayFunction=Identity;
+
+(*Internals: Hacks Print and Message to have the proper format*)
+Begin[\"Private`\"];
+JupyterMessage[m_MessageName, vars___] :=
+  WriteString[OutputStream[\"stdout\", 1], BuildMessage[m, vars]];
+BuildMessage[something___] := \"\";
+BuildMessage[$Off[], vals___] := \"\";
+BuildMessage[m_MessageName, vals___] := Module[{lvals, msgs, msg},
+					       lvals = List@vals;
+					       lvals = ToString[#1, InputForm] & /@ lvals;
+					       lvals = Sequence @@ lvals;
+					       msgs = Messages[m[[1]] // Evaluate];
+							       If[Length[msgs] == 0, Return[\"\"]];
+							       msg = m /. msgs;
+							       msg = ToString[StringForm[msg, lvals]];
+							       msg = \"msg:\" <> ToString[StringLength[msg]] <> \":\" <> msg <> \"\n\"
+							       ];
+(*Redefine Message*)
+Unprotect[Message];
+Message[m_MessageName, vals___] :=
+WriteString[OutputStream[\"stdout\", 1], BuildMessage[m, vals]];
+Unprotect[Message];
+
+(*Redefine Print*)
+ Unprotect[Print];
+ Print[s_] := WriteString[OutputStream[\"stdout\", 1],  \"P:\" <> ToString[StringLength[s]] <> \":\" <> s]
+ Protect[Print];
+End[];
+EndPackage[];
+
 """
 
 
@@ -151,10 +176,13 @@ $DisplayFunction=Identity;
             return "Sorry, no help is available on '%s'." % info['code']
 
 
-    def show_warning(self,warning):
-        self.send_response(self.iopub_socket, 'error',
-                           {'wait': False, 'name': "ss", 'evalue': warning} )
-
+    def show_warning(self, warning):
+        self.log.warning("sending a warning!")
+        self.send_response(self.iopub_socket, 'stream',
+                           {'wait': True, 'name': "stdout", 'text': "print!"} )
+        self.send_response(self.iopub_socket, 'stream',
+                           {'wait': True, 'name': "stderr", 'text': "warning!"} )
+        return
 
         
     def build_initfile(self):
@@ -247,6 +275,7 @@ $DisplayFunction=Identity;
         self.log.warning("** executed cmd: '" +  code + "'")
 
         outputtext = self.process_response(resp)
+        self.show_warning("Hola, tengo algo que decir")
         return self.postprocess_response(outputtext)
 
     def process_response(self, resp):        
