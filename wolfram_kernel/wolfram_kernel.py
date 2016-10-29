@@ -1,6 +1,9 @@
 from __future__ import print_function
 
-from metakernel import MetaKernel, ProcessMetaKernel, REPLWrapper, u
+from metakernel import MetaKernel, ProcessMetaKernel, REPLWrapper,u
+from metakernel.process_metakernel import TextOutput
+from metakernel.pexpect import EOF
+
 from IPython.display import Image, SVG
 from IPython.display import Latex, HTML, Javascript
 from IPython.display import Audio
@@ -90,7 +93,7 @@ BuildMessage[m_MessageName, vals___] := Module[{lvals, msgs, msg},
 							       If[Length[msgs] == 0, Return[\"\"]];
 							       msg = m /. msgs;
 							       msg = ToString[StringForm[msg, lvals]];
-							       msg = \"msg:\" <> ToString[StringLength[msg]] <> \":\" <> msg <> \"\n\"
+							       msg = \"\nM:\" <> ToString[StringLength[msg]] <> \":\" <> msg <> \"\n\"
 							       ];
 (*Redefine Message*)
 Unprotect[Message];
@@ -100,7 +103,7 @@ Unprotect[Message];
 
 (*Redefine Print*)
  Unprotect[Print];
- Print[s_] := WriteString[OutputStream[\"stdout\", 1],  \"P:\" <> ToString[StringLength[s]] <> \":\" <> s]
+ Print[s_] := WriteString[OutputStream[\"stdout\", 1],  \"\nP:\" <> ToString[StringLength[s]] <> \":\" <> s<>\"\n\"]
  Protect[Print];
 End[];
 EndPackage[];
@@ -191,7 +194,7 @@ $DisplayFunction=Identity;
 	Start a math/mathics kernel and return a :class:`REPLWrapper` object.
         """
         self.js_libraries_loaded = False
-        orig_prompt = u('In\[.*\]:=')  # Maybe we can consider as prompt P:, W: and Out[]:= to catch all signals in real time
+        orig_prompt = u('In\[.*\]:=')  # Maybe we can consider as prompt P:, M: and Out[]:= to catch all signals in real time
         prompt_cmd = None
         change_prompt = None
         self.check_wolfram()
@@ -310,10 +313,17 @@ $DisplayFunction=Identity;
 
 
     def do_execute_direct(self, code):
+        """
+        If code is a single line, execute it and postprocess it. For a multiline code, 
+        it splits it and call for each line do_execute_direct_single_line(). For all
+        except the last codeline, it calls to MetaKernel.post_execute() to send the 
+        output to the Kernel. For the last codeline, it leaves thist task to Metakernel.
+        """
         self.check_js_libraries_loaded()
         # Processing multiline code
         codelines =  [codeline.strip() for codeline in  code.splitlines()]
         lastline = ""
+        prevcmd = ""
         resp = None
         for codeline in codelines:
             if codeline == "":
@@ -324,7 +334,8 @@ $DisplayFunction=Identity;
                 if not resp is None :
                     # print(resp)
                     self.post_execute(resp, prevcmd, False)
-                resp = self.do_execute_direct_single_command(lastline)                
+                resp = self.do_execute_direct_single_command(lastline)
+                prevcmd = lastline
                 lastline = ""
                 continue
             lastline = lastline + codeline
@@ -343,9 +354,7 @@ $DisplayFunction=Identity;
 
         self.log.warning("Executing the code :\n" + code)
         resp =  self.do_execute_direct_single_command(code)
-        return self.postprocess_response(resp)
-
-
+        return self.postprocess_response(resp.output)
 
 
     
@@ -357,7 +366,7 @@ $DisplayFunction=Identity;
         """
         self.log.warning("processing the response:")
         self.log.warning(resp)
-        lineresponse = resp.output.splitlines()
+        lineresponse = resp.splitlines()
         outputfound = False
         messagefound = False
         messagetype = None
@@ -380,7 +389,7 @@ $DisplayFunction=Identity;
                         self.log.warning("Printing message")
                         self.log.warning("'"+ lastmessage +"'")
                         self.log.warning(messagelength.__str__() + "/" +  (len(lastmessage)).__str__() )
-                        if messagetype == "W":
+                        if messagetype == "M":
                             self.show_warning(lastmessage)
                         elif messagetype == "P":
                             self.print(lastmessage)                            
@@ -398,7 +407,7 @@ $DisplayFunction=Identity;
                                 outputtext = liner[(pos + 7):]
                                 break
                             continue
-                    if liner[:2] == "P:" or liner[:2] == "W:":
+                    if liner[:2] == "P:" or liner[:2] == "M:":
                         messagetype = liner[0]
                         messagefound = True
                         k = 2
@@ -406,8 +415,9 @@ $DisplayFunction=Identity;
                             k = k + 1
                             if liner[i+2] == ":":
                                 break
-                        messagelength = int(liner[i+2:k])
-                        lastmessage = lastmessage + liner[(k+1):]
+                        self.log.warning("len = " + liner[2:(k-1)])
+                        messagelength = int(liner[2:(k-1)])
+                        lastmessage = lastmessage + liner[k:]
                 else: #Shouldn't happen
                     self.print("extra line? " + liner)
         else:
