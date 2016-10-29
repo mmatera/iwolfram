@@ -19,24 +19,6 @@ except Exception:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class WolframKernel(ProcessMetaKernel):
     implementation = 'Wolfram Mathematica Kernel'
     implementation_version = __version__,
@@ -178,10 +160,18 @@ $DisplayFunction=Identity;
 
     def show_warning(self, warning):
         self.log.warning("sending a warning!")
-        self.send_response(self.iopub_socket, 'stream',
-                           {'wait': True, 'name': "stdout", 'text': "print!"} )
+#        self.send_response(self.iopub_socket, 'stream',
+#                           {'wait': True, 'name': "stdout", 'text': "print!"} )
         self.send_response(self.iopub_socket, 'stream',
                            {'wait': True, 'name': "stderr", 'text': "warning!"} )
+        return
+
+    def print(self, warning):
+        self.log.warning("sending a warning!")
+#        self.send_response(self.iopub_socket, 'stream',
+#                           {'wait': True, 'name': "stdout", 'text': "print!"} )
+        self.send_response(self.iopub_socket, 'stream',
+                           {'wait': True, 'name': "stdout", 'text': "warning!"} )
         return
 
         
@@ -205,7 +195,7 @@ $DisplayFunction=Identity;
 	Start a math/mathics kernel and return a :class:`REPLWrapper` object.
         """
         self.js_libraries_loaded = False
-        orig_prompt = u('In\[.*\]:=')
+        orig_prompt = u('In\[.*\]:=')  # Maybe we can consider as prompt P:, W: and Out[]:= to catch all signals in real time
         prompt_cmd = None
         change_prompt = None
         self.check_wolfram()
@@ -236,29 +226,113 @@ $DisplayFunction=Identity;
         self.Display(Javascript(jscode))        
         self.js_libraries_loaded = True
 
+    def mystreamhandler(self,mystream):
+        algo.data=d
+        self.log.warning("mystreamhandler!")
+        return -1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    def do_execute_direct_single_command(self, code, stream_handler=None):
+        """Execute the code in the subprocess.
+        Use the stream_handler to process lines as they are emitted
+        by the subprocess.
+        """
+        self.payload = []
+
+        if not code.strip():
+            self.kernel_resp = {
+                'status': 'ok',
+                'execution_count': self.execution_count,
+                'payload': [],
+                'user_expressions': {},
+            }
+            return
+
+        interrupted = False
+        output = ''
+        try:
+            output = self.wrapper.run_command(code.rstrip(), timeout=-1,
+                                     stream_handler=stream_handler)
+# TODO:  instead of proccess_response, it would be better to capture the prints and warnings at the moment they are sended.
+            output = self.process_response(output)
+            if stream_handler is not None:
+                output = ''
+        except KeyboardInterrupt as e:
+            interrupted = True
+            output = self.wrapper.child.before
+            if 'REPL not responding to interrupt' in str(e):
+                output += '\n%s' % e
+        except EOF:
+            output = self.wrapper.child.before + 'Restarting'
+            self._start()
+
+        if interrupted:
+            self.kernel_resp = {
+                'status': 'abort',
+                'execution_count': self.execution_count,
+            }
+
+        exitcode, trace = self.check_exitcode()
+
+        if exitcode:
+            self.kernel_resp = {
+                'status': 'error',
+                'execution_count': self.execution_count,
+                'ename': '', 'evalue': str(exitcode),
+                'traceback': trace,
+            }
+        else:
+            self.kernel_resp = {
+                'status': 'ok',
+                'execution_count': self.execution_count,
+                'payload': [],
+                'user_expressions': {},
+            }
+
+        return TextOutput(output)
+
+
+
+
+
+
+
+
     def do_execute_direct(self, code):
-        self.show_warning("Hola, tengo algo que decir")
         self.check_js_libraries_loaded()
         # Processing multiline code
-        codelines = code.splitlines()
+        codelines =  [codeline.strip() for codeline in  code.splitlines()]
         lastline = ""
         resp = None
-        prevcmd = ""
         for codeline in codelines:
-            if codeline.strip() == "":
-                lastline = lastline.strip()
+            if codeline == "":
                 if lastline == "":
                     continue
+                # If there was a resp before, calls post_execute and continue. This have to be here because for the last line,
+                # post_execute is called directly from the main loop of  MetaKernel
                 if not resp is None :
                     # print(resp)
                     self.post_execute(resp, prevcmd, False)
-                resp = self.do_execute_direct(lastline)                
-                prevcmd = lastline
-                self.log.warning("executed cmd: '" +  prevcmd + "')")
+                resp = self.do_execute_direct_single_command(lastline)                
                 lastline = ""
                 continue
             lastline = lastline + codeline
-        code = lastline.strip()
+        code = lastline
         if code == "":
             return resp
         else:
@@ -271,37 +345,75 @@ $DisplayFunction=Identity;
         if not self.is_wolfram:        
             code = "$PrePrint[" + code + "]"
 
-        resp = super(WolframKernel, self).do_execute_direct(code)
-        self.log.warning("** executed cmd: '" +  code + "'")
+        self.log.warning("Executing the code :\n" + code)
+        resp =  self.do_execute_direct_single_command(code)
+        return self.postprocess_response(resp)
 
-        outputtext = self.process_response(resp)
-        self.show_warning("Hola, tengo algo que decir")
-        return self.postprocess_response(outputtext)
 
-    def process_response(self, resp):        
+
+
+    
+    def process_response(self, resp):
+        """
+        This routine splits the output from messages and prints generated before it, and send the corresponding messages.
+        It would be better to capture them on the flight, at the very moment when the process print them, but it would involve a 
+        change in the wrapper.
+        """
+        self.log.warning("processing the response:")
+        self.log.warning(resp)
         lineresponse = resp.output.splitlines()
         outputfound = False
+        messagefound = False
+        messagetype = None
+        messagelength = 0
+        lastmessage = ""
         mmaexeccount = -1
         outputtext = "null:"
         if self.is_wolfram:
             for linnum, liner in enumerate(lineresponse):
-                if not outputfound and liner[:4] == "Out[":
-                    outputfound = True
-                    for pos in range(len(liner) - 4):
-                        if liner[pos + 4] == ']':
-                            mmaexeccount = int(liner[4:(pos + 4)]) 
-                            outputtext = liner[(pos + 7):]
-                            break
-                        continue
-                elif outputfound:
+                if outputfound:
                     if liner == u' ':
                         if outputtext[-1] == '\\':  # and lineresponse[linnum + 1] == '>':
                             outputtext = outputtext[:-1]
                             lineresponse[linnum + 1] = lineresponse[linnum + 1][4:]
                             continue
                     outputtext = outputtext + liner
-                else:
-                    print(liner)
+                elif messagefound:
+                    lastmessage = lastmessage + liner
+                    if len(lastmessage) >= messagelength:
+                        self.log.warning("Printing message")
+                        self.log.warning("'"+ lastmessage +"'")
+                        self.log.warning(messagelength.__str__() + "/" +  (len(lastmessage)).__str__() )
+                        if messagetype == "W":
+                            self.show_warning(lastmessage)
+                        elif messagetype == "P":
+                            self.print(lastmessage)                            
+                        messagefound = False
+                        messagelength = 0
+                        messagetype = ""
+                        lastmessage = ""
+                    continue
+                elif not outputfound and not messagefound  :
+                    if liner[:4] == "Out[":
+                        outputfound = True
+                        for pos in range(len(liner) - 4):
+                            if liner[pos + 4] == ']':
+                                mmaexeccount = int(liner[4:(pos + 4)]) 
+                                outputtext = liner[(pos + 7):]
+                                break
+                            continue
+                    if liner[:2] == "P:" or liner[:2] == "W:":
+                        messagetype = liner[0]
+                        messagefound = True
+                        k = 2
+                        for i in range(len(liner)-2):
+                            k = k + 1
+                            if liner[i+2] == ":":
+                                break
+                        messagelength = int(liner[i+2:k])
+                        lastmessage = lastmessage + liner[(k+1):]
+                else: #Shouldn't happen
+                    self.print("extra line? " + liner)
         else:
             for linnum, liner in enumerate(lineresponse):
                 if not outputfound and liner[:4] == "Out[":
