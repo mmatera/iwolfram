@@ -160,18 +160,14 @@ $DisplayFunction=Identity;
 
     def show_warning(self, warning):
         self.log.warning("sending a warning!")
-#        self.send_response(self.iopub_socket, 'stream',
-#                           {'wait': True, 'name': "stdout", 'text': "print!"} )
         self.send_response(self.iopub_socket, 'stream',
-                           {'wait': True, 'name': "stderr", 'text': "warning!"} )
+                           {'wait': True, 'name': "stderr", 'text': warning} )
         return
 
-    def print(self, warning):
-        self.log.warning("sending a warning!")
-#        self.send_response(self.iopub_socket, 'stream',
-#                           {'wait': True, 'name': "stdout", 'text': "print!"} )
+    def print(self, msg):
+        self.log.warning("sending a msg!")
         self.send_response(self.iopub_socket, 'stream',
-                           {'wait': True, 'name': "stdout", 'text': "warning!"} )
+                           {'wait': True, 'name': "stdout", 'text': msg} )
         return
 
         
