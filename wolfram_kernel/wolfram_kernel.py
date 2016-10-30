@@ -20,7 +20,13 @@ try:
 except Exception:
     mathexec = "mathics"
 
+class MMASyntaxError(BaseException):
+    def __init__(self,val=0,name="",traceback=None):
+        self.val=val
+        self.name=name
+        self.traceback=traceback
 
+        
 
 class WolframKernel(ProcessMetaKernel):
     implementation = 'Wolfram Mathematica Kernel'
@@ -92,7 +98,7 @@ BuildMessage[m_MessageName, vals___] := Module[{lvals, msgs, msg},
 					       msgs = Messages[m[[1]] // Evaluate];
 							       If[Length[msgs] == 0, Return[\"\"]];
 							       msg = m /. msgs;
-							       msg = ToString[StringForm[msg, lvals]];
+							       msg = ToString[m]<>": "<>ToString[StringForm[msg, lvals]];
 							       msg = \"\nM:\" <> ToString[StringLength[msg]] <> \":\" <> msg <> \"\n\"
 							       ];
 (*Redefine Message*)
@@ -261,7 +267,7 @@ $DisplayFunction=Identity;
                 'user_expressions': {},
             }
             return
-
+        
         interrupted = False
         output = ''
         try:
@@ -271,6 +277,15 @@ $DisplayFunction=Identity;
             output = self.process_response(output)
             if stream_handler is not None:
                 output = ''
+
+        except MMASyntaxError as e:
+            self.kernel_resp = {
+                'status': 'error',
+                'execution_count': self.execution_count,
+                'ename': e.name, 'evalue': e.val,
+                'traceback': e.traceback,
+            }
+            return TextOutput("null:")
         except KeyboardInterrupt as e:
             interrupted = True
             output = self.wrapper.child.before
@@ -392,6 +407,13 @@ $DisplayFunction=Identity;
                         self.log.warning(messagelength.__str__() + "/" +  (len(lastmessage)).__str__() )
                         if messagetype == "M":
                             self.show_warning(lastmessage)
+                            if lastmessage[0:8] == "Syntax::":
+                                for p in range(len(lastmessage)):
+                                    if lastmessage[p] == ":":
+                                        break
+                                raise MMASyntaxError(lastmessage[0:p])
+                            if lastmessage[0:11] == "Power::infy":
+                                raise MMASyntaxError(lastmessage[0:11])
                         elif messagetype == "P":
                             self.print(lastmessage)                            
                         messagefound = False
