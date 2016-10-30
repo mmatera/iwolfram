@@ -335,6 +335,7 @@ $DisplayFunction=Identity;
                     # print(resp)
                     self.post_execute(resp, prevcmd, False)
                 resp = self.do_execute_direct_single_command(lastline)
+                resp = self.postprocess_response(resp.output)
                 prevcmd = lastline
                 lastline = ""
                 continue
