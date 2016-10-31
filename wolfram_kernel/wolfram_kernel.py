@@ -457,8 +457,6 @@ $DisplayFunction=Identity;
         lastmessage = ""
         mmaexeccount = -1
         outputtext = "null:"
-        self.log.warning("resp=")
-        self.log.warning(resp)
         sangria = 0
         if self.is_wolfram:
             for linnum, liner in enumerate(lineresponse):
@@ -470,7 +468,6 @@ $DisplayFunction=Identity;
                             addlinebreak = False
                             continue
                     outputtext = outputtext  + liner[sangria:] + "\n"
-                    self.log.warning("outputtext = '"+ outputtext  +"'")
                 elif messagefound:
                     lastmessage = lastmessage + "\n" + liner
                     if len(lastmessage) >= messagelength:
@@ -498,7 +495,6 @@ $DisplayFunction=Identity;
                                 mmaexeccount = int(liner[4:(pos + 4)]) 
                                 outputtext = liner[(pos + 7):] + "\n"
                                 sangria = pos + 7
-                                self.log.warning("outputtext = '"+ outputtext  +"'")
                                 break
                             continue
                     if liner[:2] == "P:" or liner[:2] == "M:":
@@ -598,7 +594,16 @@ $DisplayFunction=Identity;
         """
         Get completions from kernel based on info dict.
         """
-        resp = ""
+        query = "Do[Print[n],{n,Names[\"" + info['obj']  + "*\"]}];$Line=$Line-1;"
+        output = self.wrapper.run_command(query, timeout=-1,
+                                          stream_handler=None)
+        lines = [s for s in output.splitlines() if s != ""]
+        resp = []
+        for l in lines:
+            for k in range(len(l)-2):
+                if l[k+2] == ":":
+                    break
+            resp.append(l[k+3:])
         return resp
 
     def handle_plot_settings(self):
