@@ -109,7 +109,7 @@ Unprotect[Message];
 
 (*Redefine Print*)
  Unprotect[Print];
- Print[s_] := WriteString[OutputStream[\"stdout\", 1],  \"\nP:\" <> ToString[StringLength[s]] <> \":\" <> s<>\"\n\"]
+ Print[s_] := WriteString[OutputStream[\"stdout\", 1],  \"\nP:\" <> ToString[StringLength[s]] <> \":\" <> s<>\"\\n\\n\"]
  Protect[Print];
 End[];
 EndPackage[];
@@ -157,7 +157,6 @@ $DisplayFunction=Identity;
 
     def __init__(self,*args, **kwargs):
         super(WolframKernel,self).__init__(*args,**kwargs)
-        self.log.warning("initializing class")
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
         self.log.warning("help required")
@@ -168,13 +167,11 @@ $DisplayFunction=Identity;
 
 
     def show_warning(self, warning):
-        self.log.warning("sending a warning!")
         self.send_response(self.iopub_socket, 'stream',
                            {'wait': True, 'name': "stderr", 'text': warning} )
         return
 
     def print(self, msg):
-        self.log.warning("sending a msg!")
         self.send_response(self.iopub_socket, 'stream',
                            {'wait': True, 'name': "stdout", 'text': msg} )
         return
@@ -211,7 +208,7 @@ $DisplayFunction=Identity;
         else:
             cmdline = self.language_info['exec'] + " -initfile '"+ self.initfilename+"'"
         replwrapper = REPLWrapper(cmdline, orig_prompt, change_prompt,
-                                  prompt_emit_cmd=prompt_cmd, echo=True)
+                                  prompt_emit_cmd = None, echo=True)
         return replwrapper
 
     def check_js_libraries_loaded(self):
@@ -230,25 +227,6 @@ $DisplayFunction=Identity;
         """
         self.Display(Javascript(jscode))        
         self.js_libraries_loaded = True
-
-    def mystreamhandler(self,mystream):
-        algo.data=d
-        self.log.warning("mystreamhandler!")
-        return -1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -323,6 +301,53 @@ $DisplayFunction=Identity;
 
 
 
+    def update_bracket_string(self, bracketstring, codeline):
+        escape = False
+        codeline = codeline.strip()
+        if codeline == "" :
+            return bracketstring
+        
+        string_open = bracketstring != "" and bracketstring[-1] == '"'
+ 
+        if  not string_open and  bracketstring != "" and  bracketstring[-1] in ['+','-','*','/','>','<','=','^',',']:    
+            bracketstring = bracketstring[:-1]
+
+        for c in codeline:
+            if string_open:
+                if escape:
+                    escape = False
+                elif c == "\\" and string_open:
+                    escape = True
+                elif c == '"':
+                    string_open = False
+                    bracketstring = bracketstring[:-1]
+                continue
+            if c == '"':
+                string_open = True
+                bracketstring = bracketstring +  '"'
+                continue
+            if c in ['(','[','{']:
+                bracketstring = bracketstring + c
+            if c == ')':
+                if bracketstring[-1] == '(':
+                    bracketstring = bracketstring[:-1]
+                else:
+                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
+            if c == ']':
+                if bracketstring[-1] == '[':
+                    bracketstring = bracketstring[:-1]
+                else:
+                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
+            if c == '}':
+                if bracketstring[-1] == '{':
+                    bracketstring = bracketstring[:-1]
+                else:
+                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
+        if  codeline[-1] in ['+','-','*','/','>','<','=','^',','] and not string_open:    
+            bracketstring = bracketstring + codeline[-1]
+        return bracketstring
+        
+
 
 
 
@@ -340,7 +365,26 @@ $DisplayFunction=Identity;
         lastline = ""
         prevcmd = ""
         resp = None
+
+        bracketstring = ""
         for codeline in codelines:
+            try:
+                bracketstring = self.update_bracket_string(bracketstring,codeline)
+                if bracketstring != "" and bracketstring[-1] == '"':
+                    codeline = codeline + "\\n"
+            except MMASyntaxError as e:
+                self.kernel_resp = {
+                    'status': 'error',
+                    'execution_count': self.execution_count,
+                    'ename': e.name, 'evalue': e.val,
+                    'traceback': e.traceback,
+                }
+                return
+            # If brackets are not balanced, add codeline to lastline and continue
+            if bracketstring != "":
+                lastline = lastline + codeline 
+                continue
+            # If brackets are balanced, and the new line is empty:
             if codeline == "":
                 if lastline == "":
                     continue
@@ -355,21 +399,39 @@ $DisplayFunction=Identity;
                 lastline = ""
                 continue
             lastline = lastline + codeline
-        code = lastline
-        if code == "":
+
+        # Finishing to process the line before the last line
+        if lastline == "":
             return resp
         else:
             if not resp  is None :
                 self.post_execute(resp, prevcmd, False)
+
+        # If the last line is complete: 
+        if bracketstring != "":
+            if bracketstring[-1] in ['(','[','{']:
+                errname = "Syntax::bktmcp"
+                self.show_warning("Syntax::bktmcp: Expression has no closing" + bracketstring[-1])
+            else:
+                errname = "Syntax::tsntxi"
+                self.show_warning("Syntax::bktmcp: Expression incomplete.")
+            self.kernel_resp = {
+                'status': 'error',
+                'execution_count': self.execution_count,
+                'ename': errname, 'evalue': "-1",
+                'traceback': lastline,
+            }
+            return 
+
         # Evaluating last valid code line
         ##
         ## TODO: Implement the functionality of PrePrint in mathics. It would fix also the call for %# as part of expressions.
         ##
         if not self.is_wolfram:        
-            code = "$PrePrint[" + code + "]"
+            lastline = "$PrePrint[" + lastline + "]"
 
-        self.log.warning("Executing the code :\n" + code)
-        resp =  self.do_execute_direct_single_command(code)
+
+        resp =  self.do_execute_direct_single_command(lastline)
         return self.postprocess_response(resp.output)
 
 
@@ -380,8 +442,6 @@ $DisplayFunction=Identity;
         It would be better to capture them on the flight, at the very moment when the process print them, but it would involve a 
         change in the wrapper.
         """
-        self.log.warning("processing the response:")
-        self.log.warning(resp)
         lineresponse = resp.splitlines()
         outputfound = False
         messagefound = False
@@ -402,18 +462,15 @@ $DisplayFunction=Identity;
                 elif messagefound:
                     lastmessage = lastmessage + liner
                     if len(lastmessage) >= messagelength:
-                        self.log.warning("Printing message")
-                        self.log.warning("'"+ lastmessage +"'")
-                        self.log.warning(messagelength.__str__() + "/" +  (len(lastmessage)).__str__() )
                         if messagetype == "M":
                             self.show_warning(lastmessage)
                             if lastmessage[0:8] == "Syntax::":
                                 for p in range(len(lastmessage)):
                                     if lastmessage[p] == ":":
                                         break
-                                raise MMASyntaxError(lastmessage[0:p])
+                                raise MMASyntaxError(lastmessage[0:p],-1,lastmessage[p+1:])
                             if lastmessage[0:11] == "Power::infy":
-                                raise MMASyntaxError(lastmessage[0:11])
+                                raise MMASyntaxError(lastmessage[0:11],lastmessage[13:])
                         elif messagetype == "P":
                             self.print(lastmessage)                            
                         messagefound = False
@@ -438,7 +495,6 @@ $DisplayFunction=Identity;
                             k = k + 1
                             if liner[i+2] == ":":
                                 break
-                        self.log.warning("len = " + liner[2:(k-1)])
                         messagelength = int(liner[2:(k-1)])
                         lastmessage = lastmessage + liner[k:]
                 else: #Shouldn't happen
@@ -471,7 +527,7 @@ $DisplayFunction=Identity;
 
     def postprocess_response(self, outputtext):        
         if(outputtext[:5] == 'null:'):
-            return ""
+            return None
         if (outputtext[:7] == 'string:'):
             return outputtext[7:]
         if (outputtext[:7] == 'mathml:'):
