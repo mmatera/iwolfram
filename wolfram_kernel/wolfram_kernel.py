@@ -59,27 +59,34 @@ class WolframKernel(ProcessMetaKernel):
 BeginPackage[\"Jupyter`\"];
 (* Process the output *)
   System`$OutputSizeLimit=Infinity;
+imagewidth = 500
 $PrePrint:=Module[{fn,res,texstr},
 		  If[#1 === Null, res=\"null:\",
 		     Switch[Head[#1],
 			    String,
 			    res=\"string:\"<>#1,
 			    Graphics,
-			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
-			    Export[fn,#1,\"png\"];
+			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
+			    Export[fn,#1,\"jpg\", ImageSize->Jupyter`imagewidth];
 			    res=\"image:\"<>fn<>\":\"<>\"- graphics -\",
 			    Graphics3D,
-			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".png\";
-			    Export[fn,#1,\"png\"];
+			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
+			    Export[fn,#1,\"jpg\", ImageSize->Jupyter`imagewidth];
 			    res=\"image:\"<>fn<>\":\"<>\"- graphics3d -\",
 			    Sound,
 			    fn=\"{sessiondir}/session-sound\"<>ToString[$Line]<>\".wav\";
 			    Export[fn,#1,\"wav\"];
 			    res=\"sound:\"<>fn<>\":\"<>\"- sound -\",
 			    _,
-			    texstr=StringReplace[ToString[TeXForm[#1]],\"\n\"->\" \"];
-			    res=\"tex:\"<>ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]]
-			    ]
+                            If[And[FreeQ[#1,Graphics],FreeQ[#1,Graphics3D]], 
+			         texstr=StringReplace[ToString[TeXForm[#1]],\"\n\"->\" \"];
+			         res=\"tex:\"<>ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]],
+                               (*else*)
+    			         fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
+			         Export[fn,#1,\"jpg\",ImageSize->Jupyter`imagewidth];
+			         res=\"image:\"<>fn<>\":\"<>ToString[InputForm[#1/.{Graphics[___]-> \"--graphics--\",Graphics3D[___]-> \"--graphics3D--\"}]]
+                               ]
+			   ]
 		     ];
 		  res
 		  ]&;
@@ -359,7 +366,7 @@ $DisplayFunction=Identity;
         except the last codeline, it calls to MetaKernel.post_execute() to send the 
         output to the Kernel. For the last codeline, it leaves thist task to Metakernel.
         """
-        self.check_js_libraries_loaded()
+        # self.check_js_libraries_loaded()
         # Processing multiline code
         codelines =  [codeline.strip() for codeline in  code.splitlines()]
         lastline = ""
