@@ -173,7 +173,7 @@ $DisplayFunction=Identity;
 
     def print(self, msg):
         self.send_response(self.iopub_socket, 'stream',
-                           {'wait': True, 'name': "stdout", 'text': msg} )
+                           {'wait': True, 'name': "stdout", 'text': msg+"\n"} )
         return
 
         
@@ -450,17 +450,22 @@ $DisplayFunction=Identity;
         lastmessage = ""
         mmaexeccount = -1
         outputtext = "null:"
+        self.log.warning("resp=")
+        self.log.warning(resp)
+        sangria = 0
         if self.is_wolfram:
             for linnum, liner in enumerate(lineresponse):
                 if outputfound:
                     if liner == u' ':
-                        if outputtext[-1] == '\\':  # and lineresponse[linnum + 1] == '>':
-                            outputtext = outputtext[:-1]
-                            lineresponse[linnum + 1] = lineresponse[linnum + 1][4:]
+                        if outputtext[-2] == '\\':  
+                            outputtext = outputtext[:-2]
+                            lineresponse[linnum + 1] = lineresponse[linnum + 1][5:]
+                            addlinebreak = False
                             continue
-                    outputtext = outputtext + liner
+                    outputtext = outputtext  + liner[sangria:] + "\n"
+                    self.log.warning("outputtext = '"+ outputtext  +"'")
                 elif messagefound:
-                    lastmessage = lastmessage + liner
+                    lastmessage = lastmessage + "\n" + liner
                     if len(lastmessage) >= messagelength:
                         if messagetype == "M":
                             self.show_warning(lastmessage)
@@ -484,7 +489,9 @@ $DisplayFunction=Identity;
                         for pos in range(len(liner) - 4):
                             if liner[pos + 4] == ']':
                                 mmaexeccount = int(liner[4:(pos + 4)]) 
-                                outputtext = liner[(pos + 7):]
+                                outputtext = liner[(pos + 7):] + "\n"
+                                sangria = pos + 7
+                                self.log.warning("outputtext = '"+ outputtext  +"'")
                                 break
                             continue
                     if liner[:2] == "P:" or liner[:2] == "M:":
