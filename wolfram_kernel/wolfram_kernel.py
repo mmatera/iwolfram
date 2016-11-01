@@ -13,6 +13,8 @@ import os
 import sys
 import tempfile
 
+import base64
+
 __version__ = '0.0.0'
 
 try:
@@ -58,13 +60,15 @@ class WolframKernel(ProcessMetaKernel):
 (* ::Package:: *)
 BeginPackage[\"Jupyter`\"];
 (* Process the output *)
-  System`$OutputSizeLimit=Infinity;
+Unprotect[System`OutputSizeLimit];
+System`$OutputSizeLimit=Infinity;
+Protect[System`OutputSizeLimit];
 imagewidth = 500
 $PrePrint:=Module[{fn,res,texstr},
 		  If[#1 === Null, res=\"null:\",
 		     Switch[Head[#1],
 			    String,
-			    res=\"string:\"<>#1,
+			    res=\"string:\"<>ExportString[#1,\"BASE64\"],
 			    Graphics,
 			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
 			    Export[fn,#1,\"jpg\", ImageSize->Jupyter`imagewidth];
@@ -80,7 +84,7 @@ $PrePrint:=Module[{fn,res,texstr},
 			    _,
                             If[And[FreeQ[#1,Graphics],FreeQ[#1,Graphics3D]], 
 			         texstr=StringReplace[ToString[TeXForm[#1]],\"\n\"->\" \"];
-			         res=\"tex:\"<>ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]],
+			         res=\"tex:\"<> ExportString[ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]], \"BASE64\"],
                                (*else*)
     			         fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
 			         Export[fn,#1,\"jpg\",ImageSize->Jupyter`imagewidth];
@@ -116,7 +120,7 @@ Unprotect[Message];
 
 (*Redefine Print*)
  Unprotect[Print];
- Print[s_] := WriteString[OutputStream[\"stdout\", 1],  \"\nP:\" <> ToString[StringLength[s]] <> \":\" <> s<>\"\\n\\n\"]
+ Print[s_] := WriteString[OutputStream[\"stdout\", 1],  \"\nP:\" <> ToString[StringLength[ToString[s]]] <> \":\" <> ToString[s]<>\"\\n\\n\"]
  Protect[Print];
 End[];
 EndPackage[];
@@ -336,16 +340,22 @@ $DisplayFunction=Identity;
             if c in ['(','[','{']:
                 bracketstring = bracketstring + c
             if c == ')':
+                if bracketstring == "":
+                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
                 if bracketstring[-1] == '(':
                     bracketstring = bracketstring[:-1]
                 else:
                     raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
             if c == ']':
+                if bracketstring == "":
+                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
                 if bracketstring[-1] == '[':
                     bracketstring = bracketstring[:-1]
                 else:
                     raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
             if c == '}':
+                if bracketstring == "":
+                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
                 if bracketstring[-1] == '{':
                     bracketstring = bracketstring[:-1]
                 else:
@@ -458,16 +468,19 @@ $DisplayFunction=Identity;
         mmaexeccount = -1
         outputtext = "null:"
         sangria = 0
+        self.log.warning("resp:\n-----\n"+resp)
         if self.is_wolfram:
+            self.log.warning("lines:")
             for linnum, liner in enumerate(lineresponse):
+                self.log.warning("<<" + liner + ">>")
                 if outputfound:
-                    if liner == u' ':
+                    if liner.strip() == '':
                         if outputtext[-2] == '\\':  
                             outputtext = outputtext[:-2]
-                            lineresponse[linnum + 1] = lineresponse[linnum + 1][5:]
+                            lineresponse[linnum + 1] = lineresponse[linnum + 1][sangria+4:]
                             addlinebreak = False
                             continue
-                    outputtext = outputtext  + liner[sangria:] + "\n"
+                    outputtext = outputtext  + liner
                 elif messagefound:
                     lastmessage = lastmessage + "\n" + liner
                     if len(lastmessage) >= messagelength:
@@ -523,7 +536,7 @@ $DisplayFunction=Identity;
                     if liner == u' ':
                         if outputtext[-1] == '\\':  # and lineresponse[linnum + 1] == '>':
                             outputtext = outputtext[:-1]
-                            lineresponse[linnum + 1] = lineresponse[linnum + 1][4:]
+                            lineresponse[linnum + 1] = lineresponse[linnum + 1][0] = " "
                             continue
                     outputtext = outputtext + liner[7:]
                 else:
@@ -539,7 +552,9 @@ $DisplayFunction=Identity;
         if(outputtext[:5] == 'null:'):
             return None
         if (outputtext[:7] == 'string:'):
-            return outputtext[7:]
+            outputtext = base64.standard_b64decode(outputtext[7:]).decode("utf-8") 
+            self.log.warning("clean string:"+outputtext)
+            return "    " + outputtext
         if (outputtext[:7] == 'mathml:'):
             for p in range(len(outputtext) - 7):
                 pp = p + 7
@@ -551,6 +566,9 @@ $DisplayFunction=Identity;
 #                    self.Display(HTML(htmlstr))
                     return HTML(htmlstr)
         if (outputtext[:4] == 'tex:'):
+            self.log.warning("base64 input:"+outputtext[4:])
+            outputtext = "    " + base64.standard_b64decode(outputtext[4:]).decode("utf-8") 
+            self.log.warning("clean text:"+ outputtext)
             for p in range(len(outputtext) - 4):
                 pp = p + 4
                 if outputtext[pp] == ':':
