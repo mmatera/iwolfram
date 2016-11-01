@@ -114,8 +114,10 @@ class WolframKernel(ProcessMetaKernel):
             cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" +  self.initfilename + "'"
         else:
             cmdline = self.language_info['exec'] + " -initfile '"+ self.initfilename+"'"
+        self.log.warning("Building the process wrapper...")
         replwrapper = REPLWrapper(cmdline, orig_prompt, change_prompt,
                                   prompt_emit_cmd = None, echo=True)
+        self.log.warning("                                ... done")
         return replwrapper
 
     def check_js_libraries_loaded(self):
@@ -129,8 +131,8 @@ class WolframKernel(ProcessMetaKernel):
                tagg.charset = 'utf-8';
                tagg.id = "graphics3dScript"
                document.getElementsByTagName("head")[0].appendChild( tagg );
-               alert("library loaded");
-          }else{alert("library was loaded before");}
+               alert("library 3d loaded");
+          }else{alert("library 3d was loaded before");}
         """
         self.Display(Javascript(jscode))        
         self.js_libraries_loaded = True
