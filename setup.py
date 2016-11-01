@@ -102,7 +102,8 @@ setup(name='wolfram_kernel',
       cmdclass={'install': install_with_kernelspec},
       install_requires=['metakernel'],
       package_data={
-        'wolfram_kernel.web': [
+          'wolfram_kernel': ['init.m'],
+        'wolfram_kernel.web': [ 
             'media/css/*.css', 'media/img/*.gif',
             'media/js/innerdom/*.js', 'media/js/prototype/*.js',
             'media/js/scriptaculous/*.js', 'media/js/three/Three.js',

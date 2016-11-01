@@ -56,99 +56,9 @@ class WolframKernel(ProcessMetaKernel):
     def repr(self, data):
         return data
 
-    _initstringwolfram = """
-(* ::Package:: *)
-BeginPackage[\"Jupyter`\"];
-(* Process the output *)
-Unprotect[System`OutputSizeLimit];
-System`$OutputSizeLimit=Infinity;
-Protect[System`OutputSizeLimit];
-imagewidth = 500
-$PrePrint:=Module[{fn,res,texstr},
-		  If[#1 === Null, res=\"null:\",
-		     Switch[Head[#1],
-			    String,
-			    res=\"string:\"<>ExportString[#1,\"BASE64\"],
-			    Graphics,
-			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
-			    Export[fn,#1,\"jpg\", ImageSize->Jupyter`imagewidth];
-			    res=\"image:\"<>fn<>\":\"<>\"- graphics -\",
-			    Graphics3D,
-			    fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
-			    Export[fn,#1,\"jpg\", ImageSize->Jupyter`imagewidth];
-			    res=\"image:\"<>fn<>\":\"<>\"- graphics3d -\",
-			    Sound,
-			    fn=\"{sessiondir}/session-sound\"<>ToString[$Line]<>\".wav\";
-			    Export[fn,#1,\"wav\"];
-			    res=\"sound:\"<>fn<>\":\"<>\"- sound -\",
-			    _,
-                            If[And[FreeQ[#1,Graphics],FreeQ[#1,Graphics3D]], 
-			         texstr=StringReplace[ToString[TeXForm[#1]],\"\n\"->\" \"];
-			         res=\"tex:\"<> ExportString[ToString[StringLength[texstr]]<>\":\"<> texstr<>\":\"<>ToString[InputForm[#1]], \"BASE64\"],
-                               (*else*)
-    			         fn=\"{sessiondir}/session-figure\"<>ToString[$Line]<>\".jpg\";
-			         Export[fn,#1,\"jpg\",ImageSize->Jupyter`imagewidth];
-			         res=\"image:\"<>fn<>\":\"<>ToString[InputForm[#1/.{Graphics[___]-> \"--graphics--\",Graphics3D[___]-> \"--graphics3D--\"}]]
-                               ]
-			   ]
-		     ];
-		  res
-		  ]&;
-$DisplayFunction=Identity;
-
-(*Internals: Hacks Print and Message to have the proper format*)
-Begin[\"Private`\"];
-JupyterMessage[m_MessageName, vars___] :=
-  WriteString[OutputStream[\"stdout\", 1], BuildMessage[m, vars]];
-BuildMessage[something___] := \"\";
-BuildMessage[$Off[], vals___] := \"\";
-BuildMessage[m_MessageName, vals___] := Module[{lvals, msgs, msg},
-					       lvals = List@vals;
-					       lvals = ToString[#1, InputForm] & /@ lvals;
-					       lvals = Sequence @@ lvals;
-					       msgs = Messages[m[[1]] // Evaluate];
-							       If[Length[msgs] == 0, Return[\"\"]];
-							       msg = m /. msgs;
-							       msg = ToString[m]<>": "<>ToString[StringForm[msg, lvals]];
-							       msg = \"\nM:\" <> ToString[StringLength[msg]] <> \":\" <> msg <> \"\n\"
-							       ];
-(*Redefine Message*)
-Unprotect[Message];
-Message[m_MessageName, vals___] :=
-WriteString[OutputStream[\"stdout\", 1], BuildMessage[m, vals]];
-Unprotect[Message];
-
-(*Redefine Print*)
- Unprotect[Print];
- Print[s_] := WriteString[OutputStream[\"stdout\", 1],  \"\nP:\" <> ToString[StringLength[ToString[s]]] <> \":\" <> ToString[s]<>\"\\n\\n\"]
- Protect[Print];
-End[];
-EndPackage[];
-
-"""
-
-
-    _initstringmathics = """
-System`$OutputSizeLimit=1000000000000
-$PrePrint:=Module[{fn,res,mathmlstr}, 
-If[#1 === Null, res=\"null:\",
-
-Switch[Head[#1],
-          String,
-            res=\"string:\"<>#1,
-          _,            
-            mathmlstr=ToString[MathMLForm[#1]];
-            res=\"mathml:\"<>ToString[StringLength[mathmlstr]]<>\":\"<> mathmlstr<>\":\"<>ToString[InputForm[#1]]
-       ]
-       ];
-       res
-    ]&;
-$DisplayFunction=Identity;
-"""
-
     _session_dir = ""
     _first = True
-    initfilename = ""
+    initfilename = os.path.dirname(__file__) + "/init.m"
     _banner = None
 
     @property
@@ -188,21 +98,7 @@ $DisplayFunction=Identity;
         return
 
         
-    def build_initfile(self):
-        if self.is_wolfram:
-            self._initstring = self._initstringwolfram
-        else:
-            self._initstring = self._initstringmathics
-        self._first = True
-        self._session_dir = tempfile.mkdtemp()
-        self._initstring = self._initstring.replace("{sessiondir}", self._session_dir)
-        self.initfilename = self._session_dir + '/init.m'
-        print(self.initfilename)
-        f = open(self.initfilename, 'w')
-        f.write(self._initstring)
-        f.close()
         
-
     def makeWrapper(self):
         """
 	Start a math/mathics kernel and return a :class:`REPLWrapper` object.
@@ -212,7 +108,7 @@ $DisplayFunction=Identity;
         prompt_cmd = None
         change_prompt = None
         self.check_wolfram()
-        self.build_initfile()
+
         
         if not self.is_wolfram:
             cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" +  self.initfilename + "'"
@@ -468,18 +364,13 @@ $DisplayFunction=Identity;
         mmaexeccount = -1
         outputtext = "null:"
         sangria = 0
-        self.log.warning("resp:\n-----\n"+resp)
         if self.is_wolfram:
-            self.log.warning("lines:")
             for linnum, liner in enumerate(lineresponse):
-                self.log.warning("<<" + liner + ">>")
                 if outputfound:
-                    if liner.strip() == '':
-                        if outputtext[-2] == '\\':  
-                            outputtext = outputtext[:-2]
-                            lineresponse[linnum + 1] = lineresponse[linnum + 1][sangria+4:]
-                            addlinebreak = False
-                            continue
+                    if liner.strip() == "":
+                        continue
+                    if liner[:4] == "Out[":
+                        break
                     outputtext = outputtext  + liner
                 elif messagefound:
                     lastmessage = lastmessage + "\n" + liner
@@ -510,7 +401,7 @@ $DisplayFunction=Identity;
                                 sangria = pos + 7
                                 break
                             continue
-                    if liner[:2] == "P:" or liner[:2] == "M:":
+                    elif liner[:2] == "P:" or liner[:2] == "M:":
                         messagetype = liner[0]
                         messagefound = True
                         k = 2
@@ -520,6 +411,8 @@ $DisplayFunction=Identity;
                                 break
                         messagelength = int(liner[2:(k-1)])
                         lastmessage = lastmessage + liner[k:]
+                    else: # For some reason, Information do not pass through Print or  $PrePrint
+                        self.print(liner)
                 else: #Shouldn't happen
                     self.print("extra line? " + liner)
         else:
@@ -552,8 +445,9 @@ $DisplayFunction=Identity;
         if(outputtext[:5] == 'null:'):
             return None
         if (outputtext[:7] == 'string:'):
-            outputtext = base64.standard_b64decode(outputtext[7:]).decode("utf-8") 
-            self.log.warning("clean string:"+outputtext)
+            while outputtext[-1] == "\n":
+                outputtext = outputtext[:-1]
+            outputtext = base64.standard_b64decode(outputtext[7:].rstrip()).decode("utf-8") 
             return "    " + outputtext
         if (outputtext[:7] == 'mathml:'):
             for p in range(len(outputtext) - 7):
@@ -566,9 +460,9 @@ $DisplayFunction=Identity;
 #                    self.Display(HTML(htmlstr))
                     return HTML(htmlstr)
         if (outputtext[:4] == 'tex:'):
-            self.log.warning("base64 input:"+outputtext[4:])
-            outputtext = "    " + base64.standard_b64decode(outputtext[4:]).decode("utf-8") 
-            self.log.warning("clean text:"+ outputtext)
+            while outputtext[-1] == "\n":
+                outputtext = outputtext[:-1]
+            outputtext = "    " + base64.standard_b64decode(outputtext[4:].rstrip()).decode("utf-8") 
             for p in range(len(outputtext) - 4):
                 pp = p + 4
                 if outputtext[pp] == ':':

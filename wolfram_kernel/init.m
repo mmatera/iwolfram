@@ -2,31 +2,39 @@
 (* ::Package:: *)
 BeginPackage["Jupyter`"];
 (* Process the output *)
-  System`$OutputSizeLimit=Infinity;
+Jupyter`tmpdir = CreateDirectory[]
+imagewidth = 500
 $PrePrint:=Module[{fn,res,texstr},
 		  If[#1 === Null, res="null:",
 		     Switch[Head[#1],
 			    String,
-			    res="string:"<>#1,
+			    res="string:"<>ExportString[#1,"BASE64"],
 			    Graphics,
-			    fn="/tmp/tmprpgt8fkv/session-figure"<>ToString[$Line]<>".png";
-			    Export[fn,#1,"png"];
+			    fn=Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg";
+			    Export[fn,#1,"jpg", ImageSize->Jupyter`imagewidth];
 			    res="image:"<>fn<>":"<>"- graphics -",
 			    Graphics3D,
-			    fn="/tmp/tmprpgt8fkv/session-figure"<>ToString[$Line]<>".png";
-			    Export[fn,#1,"png"];
+			    fn=Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg";
+			    Export[fn,#1,"jpg", ImageSize->Jupyter`imagewidth];
 			    res="image:"<>fn<>":"<>"- graphics3d -",
 			    Sound,
-			    fn="/tmp/tmprpgt8fkv/session-sound"<>ToString[$Line]<>".wav";
+			    fn=Jupyter`tmpdir <> "/session-sound"<>ToString[$Line]<>".wav";
 			    Export[fn,#1,"wav"];
 			    res="sound:"<>fn<>":"<>"- sound -",
 			    _,
-			    texstr=StringReplace[ToString[TeXForm[#1]],"
+                            If[And[FreeQ[#1,Graphics],FreeQ[#1,Graphics3D]], 
+			         texstr=StringReplace[ToString[TeXForm[#1]],"
 "->" "];
-			    res="tex:"<>ToString[StringLength[texstr]]<>":"<> texstr<>":"<>ToString[InputForm[#1]]
-			    ]
+			         res="tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>ToString[InputForm[#1]], "BASE64"],
+                               (*else*)
+    			         fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg";
+			         Export[fn,#1,"jpg",ImageSize->Jupyter`imagewidth];
+			         res="image:"<>fn<>":"<>ToString[InputForm[#1/.{Graphics[___]-> "--graphics--",Graphics3D[___]-> "--graphics3D--"}]]
+                               ]
+			   ]
 		     ];
-		  res
+		  WriteString[OutputStream["stdout", 1],"Out["<>ToString[$Line]<>"]= " <> res<>"\n"];
+		  ""
 		  ]&;
 $DisplayFunction=Identity;
 
@@ -57,7 +65,7 @@ Unprotect[Message];
 (*Redefine Print*)
  Unprotect[Print];
  Print[s_] := WriteString[OutputStream["stdout", 1],  "
-P:" <> ToString[StringLength[s]] <> ":" <> s<>"\n\n"]
+P:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"]
  Protect[Print];
 End[];
 EndPackage[];
