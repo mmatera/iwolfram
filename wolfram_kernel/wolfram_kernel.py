@@ -2,7 +2,8 @@ from __future__ import print_function
 
 from metakernel import MetaKernel, ProcessMetaKernel, REPLWrapper,u
 from metakernel.process_metakernel import TextOutput
-from metakernel.pexpect import EOF
+from metakernel.pexpect import EOF, spawnu
+from .pexpect import myspawn
 
 from IPython.display import Image, SVG
 from IPython.display import Latex, HTML, Javascript
@@ -115,7 +116,8 @@ class WolframKernel(ProcessMetaKernel):
         else:
             cmdline = self.language_info['exec'] + " -initfile '"+ self.initfilename+"'"
         self.log.warning("Building the process wrapper...")
-        replwrapper = REPLWrapper(cmdline, orig_prompt, change_prompt,
+        myspawner =  spawnu(cmdline, errors="ignore", echo = True)
+        replwrapper = REPLWrapper(myspawner, orig_prompt, change_prompt,
                                   prompt_emit_cmd = None, echo=True)
         self.log.warning("                                ... done")
         return replwrapper

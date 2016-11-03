@@ -34,10 +34,10 @@ if "--mma-exec" in sys.argv:
     sys.argv.pop(idx)
     wmmexec = sys.argv.pop(idx) 
 
-if "--iwolfram-mathkernel-path" in sys.argv:
-    idx = sys.argv.index("--iwolfram-mathkernel-path")
-    sys.argv.pop(idx)
-    wmmcaller = sys.argv.pop(idx) 
+# if "--iwolfram-mathkernel-path" in sys.argv:
+#     idx = sys.argv.index("--iwolfram-mathkernel-path")
+#     sys.argv.pop(idx)
+#     wmmcaller = sys.argv.pop(idx) 
 
 
 
@@ -45,25 +45,26 @@ if "--iwolfram-mathkernel-path" in sys.argv:
 
 class install_with_kernelspec(install):
     def run(self):
-        global wmmcaller
+        # global wmmcaller
         global wmmexec
         # Determine if the executable is Wolfram Mathematica or mathics
-        starttext = os.popen("bash -c 'echo |" +  wmmexec  +"'").read()
-        if starttext[:11] == "Mathematica":
-            wmmcaller = '/usr/local/bin/iwolframcaller.sh'
-        if not wmmcaller  is None:
-            with open(wmmcaller,'w') as f:
-                f.write("#!/bin/sh\n\n")
-                f.write("# sh envelopment for the true math command ")
-                f.write("necesary to avoid the kernel hangs on jupyterhub\n\n\n ")
-                f.write(wmmexec + " $@")
-            os.chmod(wmmcaller, 0o755)
-        else:
-            wmmcaller = wmmexec
+        # starttext = os.popen("bash -c 'echo |" +  wmmexec  +"'").read()
+        # if starttext[:11] == "Mathematica":
+        #     wmmcaller =  wmmexec
+            # if wmmcaller is None:
+            #     wmmcaller = '/usr/local/bin/iwolframcaller.sh'
+            # with open(wmmcaller,'w') as f:
+            #     f.write("#!/bin/sh\n\n")
+            #     f.write("# sh envelopment for the true math command ")
+            #     f.write("necesary to avoid the kernel hangs on jupyterhub\n\n\n ")
+            #     f.write(wmmexec + " $@")
+            # os.chmod(wmmcaller, 0o755)
+        # else:
+        #     wmmcaller = wmmexec
 
         # Build the configuration file
         configfilestr = "# iwolfram configuration file\nmathexec = '{wolfram-caller-script-path}'\n\n"
-        configfilestr = configfilestr.replace('{wolfram-caller-script-path}',wmmcaller)
+        configfilestr = configfilestr.replace('{wolfram-caller-script-path}',wmmexec)
         with open('wolfram_kernel/config.py','w') as f:
             f.write(configfilestr)
 
