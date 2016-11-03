@@ -5,7 +5,7 @@ BeginPackage["Jupyter`"];
 Jupyter`tmpdir = CreateDirectory[]
 imagewidth = 500
 
-SetImagesWidth[width_]:=imagewidth = 500
+SetImagesWidth[width_]:=(imagewidth =width)
 
 ImagesWidth[]:=imagewidth
 
@@ -21,35 +21,53 @@ System`$PrePrint:=JupyterPrePrintFunction
 
 JupyterReturnValue[Null]:="null:"
 
-JupyterReturnValue[v_]:= Module[{fn},
-			 If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]], 
+
+
+
+JupyterReturnImageFileJPG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg"},
+				    Export[fn,v,"jpg",ImageSize->Jupyter`imagewidth];
+				    "image:" <> fn 			    
+				   ]
+
+JupyterReturnImageFilePNG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".png"},
+				    Export[fn,v,"png",ImageSize->Jupyter`imagewidth];
+				    "image:" <> fn 			    
+				   ]
+
+
+JupyterReturnBase64JPG[v_]:= "jpg:" <> "data:image/jpg;base64," <> 
+                                  StringReplace[ExportString[ExportString[v,"jpg", ImageSize->Jupyter`imagewidth],"BASE64"],"\n"->""]
+
+JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <> 
+                                  StringReplace[ExportString[ExportString[v,"png", ImageSize->Jupyter`imagewidth],"BASE64"],"\n"->""]
+
+
+JupyterReturnImage = JupyterReturnBase64PNG
+
+JupyterReturnValue[v_Graphics]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -"
+
+JupyterReturnValue[v_Graphics3D]:= JupyterReturnImage[v]  <>  ":" <> "- graphics3D -"
+
+
+
+JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]], 
 			    texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 			    "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
 						  ToString[InputForm[v]], "BASE64"],
 			    (*else*)
-			    fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg";
-			    Export[fn,v,"jpg",ImageSize->Jupyter`imagewidth];
-			    "image:"<>fn<>":"<>ToString[InputForm[#1/.{Graphics[___]-> "--graphics--",
-								       Graphics3D[___]-> "--graphics3D--"}]]
-                               ]
+			    JupyterReturnImage[v] <> ":" <>
+			    ToString[InputForm[#1/.{Graphics[___]-> "- graphics -",
+						    Graphics3D[___]-> "- graphics3D -"}]]
 			   ]
+
 
 
 JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"BASE64"]
 
-JupyterReturnValue[v_Sound]:=Module[{fn=Jupyter`tmpdir <> "/session-sound"<>ToString[$Line]<>".wav"},
-			     Export[fn,v,"wav"];
-			     "sound:"<>fn<>":"<>"- sound -"]
+JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[ExportString[v,"wav"],"BASE64"]
 
 
-JupyterReturnValue[v_Graphics]:=Module[{fn=Jupyter`tmpdir <> "/session-sound"<>ToString[$Line]<>".jpg"},
-			    Export[fn,v,"jpg", ImageSize->Jupyter`imagewidth];
-			    "image:"<>fn<>":"<>"- graphics -"]
 
-
-JupyterReturnValue[v_Graphics3D]:=Module[{fn=Jupyter`tmpdir <> "/session-sound"<>ToString[$Line]<>".jpg"},
-			    Export[fn,v,"jpg", ImageSize->Jupyter`imagewidth];
-			    "image:"<>fn<>":"<>"- graphics -"]
 
 JupyterMessage[m_MessageName, vars___] :=
   WriteString[OutputStream["stdout", 1], BuildMessage[m, vars]];

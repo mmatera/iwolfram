@@ -488,6 +488,18 @@ class WolframKernel(ProcessMetaKernel):
                     print(outputtext[6:pp])
                     self.Display(Image(outputtext[6:pp]))
                     return outputtext[(pp + 1):]
+
+        if(outputtext[:4] in ['jpg:', 'png:'] ):
+            for p in range(len(outputtext) - 18):
+                pp = p + 18
+                if outputtext[pp] == ':':
+                    self.Display(HTML("<center><img class='unconfined' src=\"" +   outputtext[4:pp] + "\"></img></center>"))
+                    return outputtext[(pp + 1):]
+
+        if(outputtext[:4] == 'wav:'):
+            self.Display(Audio(url=outputtext[4:], autoplay = False, embed = True))
+            return "-- sound --"
+
         if(outputtext[:6] == 'sound:'):
             for p in range(len(outputtext) - 6):
                 pp = p + 6
