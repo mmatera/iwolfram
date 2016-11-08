@@ -101,7 +101,7 @@ setup(name='wolfram_kernel',
       author_email='matera@fisica.unlp.edu.ar',
       packages=['wolfram_kernel','wolfram_kernel.web'],
       cmdclass={'install': install_with_kernelspec},
-      install_requires=['metakernel'],
+      install_requires=['metakernel', 'mathics'],
       package_data={
           'wolfram_kernel': ['init.m'],
         'wolfram_kernel.web': [ 

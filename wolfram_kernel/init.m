@@ -15,13 +15,22 @@ $DisplayFunction=Identity;
 (*Internals: Hacks Print and Message to have the proper format*)
 Begin["Private`"];
 
-JupyterPrePrintFunction[v_]:=WriteString[OutputStream["stdout", 1],"Out["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]
 
-System`$PrePrint:=JupyterPrePrintFunction
+If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;]
+
+
+JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"Out["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]
 
 JupyterReturnValue[Null]:="null:"
 
-
+(*JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
+			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
+						  ToString[InputForm[v]], "BASE64"])
+*)
+JupyterReturnImageFileSVG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".svg"},
+				    Export[fn,v,"svg",ImageSize->Jupyter`imagewidth];
+				    "image:" <> fn 			    
+				   ]
 
 
 JupyterReturnImageFileJPG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg"},
@@ -42,8 +51,6 @@ JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <>
                                   StringReplace[ExportString[ExportString[v,"png", ImageSize->Jupyter`imagewidth],"BASE64"],"\n"->""]
 
 
-JupyterReturnImage = JupyterReturnBase64PNG
-
 JupyterReturnValue[v_Graphics]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -"
 
 JupyterReturnValue[v_Graphics3D]:= JupyterReturnImage[v]  <>  ":" <> "- graphics3D -"
@@ -51,9 +58,7 @@ JupyterReturnValue[v_Graphics3D]:= JupyterReturnImage[v]  <>  ":" <> "- graphics
 
 
 JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]], 
-			    texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
-			    "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
-						  ToString[InputForm[v]], "BASE64"],
+			    JupyterReturnExpressionTeX[v],
 			    (*else*)
 			    JupyterReturnImage[v] <> ":" <>
 			    ToString[InputForm[#1/.{Graphics[___]-> "- graphics -",
@@ -62,9 +67,27 @@ JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]],
 
 
 
-JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"BASE64"]
-
 JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[ExportString[v,"wav"],"BASE64"]
+
+(*Definitions depending on the platform*)
+If[Mathics, 
+   Print["Defining system dependent expressions for mathics"];
+   JupyterReturnImage = JupyterReturnImageFileSVG;
+   JupyterReturnValue[v_String]:= "string:"<>v;   
+   JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
+				     "tex:"<> ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
+							   ToString[InputForm[v]]);
+   JupyterSTDOUT = OutputStream["stdout", 1];
+   ,(*Else*)
+   Print["Defining system dependent expressions for mma "]
+   JupyterReturnImage = JupyterReturnImageFilePNG;
+   JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"BASE64"];
+   JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
+			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
+						  ToString[InputForm[v]], "BASE64"]);   
+   JupyterSTDOUT = OutputStream["stdout", 1];
+  ]
+
 
 
 
@@ -83,6 +106,9 @@ BuildMessage[m_MessageName, vals___] := Module[{lvals, msgs, msg},
 							       msg = ToString[m]<>": "<>ToString[StringForm[msg, lvals]];
 							       msg = "\nM:" <> ToString[StringLength[msg]] <> ":" <> msg <> "\n"
 							       ];
+
+(*Redefine Preprint Function*)
+System`$PrePrint:=JupyterPrePrintFunction
 (*Redefine Message*)
 Unprotect[Message];
 Message[m_MessageName, vals___] :=

@@ -421,23 +421,55 @@ class WolframKernel(ProcessMetaKernel):
                     self.print("extra line? " + liner)
         else:
             for linnum, liner in enumerate(lineresponse):
-                if not outputfound and liner[:4] == "Out[":
-                    outputfound = True
-                    for pos in range(len(liner) - 4):
-                        if liner[pos + 4] == ']':
-                            mmaexeccount = int(liner[4:(pos + 4)]) 
-                            outputtext = liner[(pos + 7):]
-                            break
+                if outputfound:
+                    if liner.strip() == "":
                         continue
-                elif outputfound:
-                    if liner == u' ':
-                        if outputtext[-1] == '\\':  # and lineresponse[linnum + 1] == '>':
-                            outputtext = outputtext[:-1]
-                            lineresponse[linnum + 1] = lineresponse[linnum + 1][0] = " "
+                    if liner[:4] == "Out[":
+                        break
+                    outputtext = outputtext  + liner
+                elif messagefound:
+                    lastmessage = lastmessage + "\n" + liner
+                    if len(lastmessage) >= messagelength:
+                        if messagetype == "M":
+                            self.show_warning(lastmessage)
+                            if lastmessage[0:8] == "Syntax::":
+                                for p in range(len(lastmessage)):
+                                    if lastmessage[p] == ":":
+                                        break
+                                raise MMASyntaxError(lastmessage[0:p],-1,lastmessage[p+1:])
+                            if lastmessage[0:11] == "Power::infy":
+                                raise MMASyntaxError(lastmessage[0:11],lastmessage[13:])
+                        elif messagetype == "P":
+                            self.print(lastmessage)                            
+                        messagefound = False
+                        messagelength = 0
+                        messagetype = ""
+                        lastmessage = ""
+                    continue
+                elif not outputfound and not messagefound  :
+                    if liner[:4] == "Out[":
+                        outputfound = True
+                        for pos in range(len(liner) - 4):
+                            if liner[pos + 4] == ']':
+                                mmaexeccount = int(liner[4:(pos + 4)]) 
+                                outputtext = liner[(pos + 7):] + "\n"
+                                sangria = pos + 7
+                                break
                             continue
-                    outputtext = outputtext + liner[7:]
-                else:
-                    print(liner)
+                    elif liner[:2] == "P:" or liner[:2] == "M:":
+                        messagetype = liner[0]
+                        messagefound = True
+                        k = 2
+                        for i in range(len(liner)-2):
+                            k = k + 1
+                            if liner[i+2] == ":":
+                                break
+                        messagelength = int(liner[2:(k-1)])
+                        lastmessage = lastmessage + liner[k:]
+                    else: # For some reason, Information do not pass through Print or  $PrePrint
+                        self.print(liner)
+                else: #Shouldn't happen
+                    self.print("extra line? " + liner)
 
         if  mmaexeccount>0:
             self.execution_count = mmaexeccount
@@ -451,7 +483,10 @@ class WolframKernel(ProcessMetaKernel):
         if (outputtext[:7] == 'string:'):
             while outputtext[-1] == "\n":
                 outputtext = outputtext[:-1]
-            outputtext = base64.standard_b64decode(outputtext[7:].rstrip()).decode("utf-8") 
+            if self.is_wolfram:
+                outputtext = base64.standard_b64decode(outputtext[7:].rstrip()).decode("utf-8") 
+            else:
+                outputtext = outputtext[7:]
             return "    " + outputtext
         if (outputtext[:7] == 'mathml:'):
             for p in range(len(outputtext) - 7):
@@ -466,7 +501,10 @@ class WolframKernel(ProcessMetaKernel):
         if (outputtext[:4] == 'tex:'):
             while outputtext[-1] == "\n":
                 outputtext = outputtext[:-1]
-            outputtext = "    " + base64.standard_b64decode(outputtext[4:].rstrip()).decode("utf-8") 
+            if self.is_wolfram:
+                outputtext = "    " + base64.standard_b64decode(outputtext[4:].rstrip()).decode("utf-8") 
+            else:
+                outputtext = "    " + outputtext[4:]
             for p in range(len(outputtext) - 4):
                 pp = p + 4
                 if outputtext[pp] == ':':
