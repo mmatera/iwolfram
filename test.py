@@ -12,7 +12,7 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
 
     # language_info.file_extension, should match kernel_info_reply
     # (and start with a dot)
-    file_extension = '.txt'
+    file_extension = '.m'
 
     # Optional --------------------------------------
 
