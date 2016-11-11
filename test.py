@@ -76,7 +76,7 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # TODO
     # code_clear_output = "clear_output()"
     def subTest(code):
-        pass
+        return True
     
 if __name__ == '__main__':
     unittest.main()
