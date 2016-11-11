@@ -75,7 +75,7 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # to the frontend
     # TODO
     # code_clear_output = "clear_output()"
-    def subTest(code=None,hist_access_type=None):
+    def subTest(code=None,hist_access_type=None, status=None):
         return True
     
 if __name__ == '__main__':
