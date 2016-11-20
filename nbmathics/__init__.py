@@ -13,7 +13,11 @@ def _juputer_nbextension_paths():
         require = "nbmathics/main"
     )]
 
+def _juputer_bundlerextension_paths():
+    return [{
+    
 
+    }]
 
 
 def bundler(handler, model):
