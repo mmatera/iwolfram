@@ -2,10 +2,33 @@
 define(
     function() {
 	function _load_ipython_extension(){
-	    alert("init nbmathics");
+	    console.info("init nbmathics");
+	    
 	    var handlerCtrlEsc = function(){
-		alert("You press CtrlEsc");
+		var cm = IPython.notebook.get_selected_cell().code_mirror;
+		var start = cm.getCursor("start"), end = cm.getCursor("end");
+		if (start.line == end.line && start.ch == end.ch){
+		    if (handlerCtrlEsc.status != false){
+			alert("Closing the selection from " + String(handlerCtrlEsc.status.line) + ":" + String(handlerCtrlEsc.status.ch) +
+			      " in " + String(end.line) + ":" + String(end.ch));
+			handlerCtrlEsc.status = false;
+		    }else{
+			var cm = IPython.notebook.get_selected_cell().code_mirror;
+			var start = cm.getCursor("start"), to = cm.getCursor("end");
+			handlerCtrlEsc.status = start
+			alert("Open the selection at " + String(start.line) + ":" + String(start.ch));
+		    }
+		}else{
+		    handlerCtrlEsc.status = false
+		    alert("the selection now is from " + String(start.line) + ":" + String(start.ch) +
+			      " to " + String(end.line) + ":" + String(end.ch));
+		    
+		} 
+		
+		return false;
 	    };
+	    handlerCtrlEsc.status = false;
+	    
 	    var actionCtrlEsc = {
 		icon: 'fa-comment-o',
 		help: 'Show an alert',
