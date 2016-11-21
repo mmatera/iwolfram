@@ -11,7 +11,8 @@ define(
 		    if (handlerCtrlEsc.status != false){
 			alert("Closing the selection from " + String(handlerCtrlEsc.status.line) + ":" + String(handlerCtrlEsc.status.ch) +
 			      " in " + String(end.line) + ":" + String(end.ch));
-			handlerCtrlEsc.status = false;
+			//cm.oc.replaceRange()
+                          handlerCtrlEsc.status = false;
 		    }else{
 			var cm = IPython.notebook.get_selected_cell().code_mirror;
 			var start = cm.getCursor("start"), to = cm.getCursor("end");
