@@ -3,27 +3,64 @@ define(
     function() {
 	function _load_ipython_extension(){
 	    console.info("init nbmathics");
+
+	    var escLitToUTFSymbol = {};
+	    escLitToUTFSymbol["ii"] = "";
+	    escLitToUTFSymbol["jj"] = "";
+	    escLitToUTFSymbol["cross"] = "";
+	    escLitToUTFSymbol["*"] = "×";
+	    escLitToUTFSymbol["c+"] = "⊕";
+	    escLitToUTFSymbol["c*"] = "⊗";
+	    escLitToUTFSymbol["&&"] = "∧";
+	    escLitToUTFSymbol["||"] = "∨";
+	    escLitToUTFSymbol["!"]  = "¬";	    
+	    escLitToUTFSymbol["pd"] = "∂";
+	    escLitToUTFSymbol["del"] = "∇";
+	    escLitToUTFSymbol["sum"] = "∑";
+	    escLitToUTFSymbol["prod"] = "∏";
+	    escLitToUTFSymbol["int"] = "∫";
+	    escLitToUTFSymbol["dd"] = "";
+	    escLitToUTFSymbol["DD"] = "";
+	    escLitToUTFSymbol["prop"] = "∝";
+	    escLitToUTFSymbol["inf"] = "∞";
+	    escLitToUTFSymbol["elem"] = "∈";
+	    escLitToUTFSymbol["sub"] = "⊂";
+	    escLitToUTFSymbol["sup"] = "⊃";
+	    escLitToUTFSymbol["un"] = "⋃";
+	    escLitToUTFSymbol["inter"] = "⋂";
+	    escLitToUTFSymbol["."]  = "·";
+	    escLitToUTFSymbol["->"] = "→";
+	    escLitToUTFSymbol[":>"] = "";
+	    escLitToUTFSymbol["=>"] = "";
+	    escLitToUTFSymbol["[["] = "〚";
+	    escLitToUTFSymbol["]]"]  = "〛";
+	    escLitToUTFSymbol["<"] = "〈";
+	    escLitToUTFSymbol[">"]  = "〉";
+	    escLitToUTFSymbol["<="] = "≤";
+	    escLitToUTFSymbol[">="]  = "≥";
+
 	    
 	    var handlerCtrlEsc = function(){
 		var cm = IPython.notebook.get_selected_cell().code_mirror;
 		var start = cm.getCursor("start"), end = cm.getCursor("end");
 		if (start.line == end.line && start.ch == end.ch){
 		    if (handlerCtrlEsc.status != false){
-			alert("Closing the selection from " + String(handlerCtrlEsc.status.line) + ":" + String(handlerCtrlEsc.status.ch) +
-			      " in " + String(end.line) + ":" + String(end.ch));
-			//cm.oc.replaceRange()
-                          handlerCtrlEsc.status = false;
+			newchar = escLitToUTFSymbol[cm.doc.getRange(handlerCtrlEsc.status, end)];
+			if (newchar != undefined){
+			    cm.doc.replaceRange(newchar, handlerCtrlEsc.status, end);
+			}
+                        handlerCtrlEsc.status = false;
 		    }else{
 			var cm = IPython.notebook.get_selected_cell().code_mirror;
 			var start = cm.getCursor("start"), to = cm.getCursor("end");
-			handlerCtrlEsc.status = start
-			alert("Open the selection at " + String(start.line) + ":" + String(start.ch));
+			handlerCtrlEsc.status = start;
 		    }
 		}else{
 		    handlerCtrlEsc.status = false
-		    alert("the selection now is from " + String(start.line) + ":" + String(start.ch) +
-			      " to " + String(end.line) + ":" + String(end.ch));
-		    
+		    newchar = escLitToUTFSymbol[cm.doc.getRange(start, end)];
+		    if (newchar != undefined){
+			cm.doc.replaceRange(newchar, start, end);
+		    }
 		} 
 		
 		return false;

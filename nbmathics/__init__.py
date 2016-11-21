@@ -2,10 +2,10 @@ import nbformat
 import os
 import io
 
-def _jupyter_server_extension_path():
+def _jupyter_server_extension_paths():
     return [{'module':"nbmathics"}]
 
-def _juputer_nbextension_paths():
+def _jupyter_nbextension_paths():
     return [dict(
         section = "notebook",
         src = "static",
@@ -13,7 +13,7 @@ def _juputer_nbextension_paths():
         require = "nbmathics/main"
     )]
 
-def _juputer_bundlerextension_paths():
+def _jupyter_bundlerextension_paths():
     return [{
     
 
