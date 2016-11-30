@@ -1,0 +1,6 @@
+Type: IPython Notebook Extension
+Compatibility: 3.x, 4.x
+Name: Extensions for Jupyter Mathics
+Main: main.js
+Link: README.md
+Description: Add hooks for jupytermathics
