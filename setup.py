@@ -28,7 +28,55 @@ def subdirs(root, file='*.*', depth=10):
 if "--help" in sys.argv:
     print('setup install|build --mma-exec <path to mathematica executable> --iwolfram-mathkernel-path <path to store the caller>')
 
-wmmexec = 'mathics'
+
+
+# As default, look first if wolfram mma is installed. Otherwise, use mathics. 
+wmmexec = None
+if "--mma-exec" in sys.argv:
+    idx = sys.argv.index("--mma-exec")
+    sys.argv.pop(idx)
+    candidate = sys.argv.pop(idx)
+    try:
+        starttext = os.popen("bash -c 'echo |" +  candidate  +"'").read()
+        if starttext[:11] == "Mathematica":			      
+            print("Using Wolfram Mathematica")
+            wmmexec = candidate
+        elif starttext[:8] == "\nMathics":			      
+            print("Using Mathics")
+            wmmexec = candidate
+    except Exception:
+        print(wmmexec  + " is not a valid interpreter. Looking for a valid one.")
+            
+if wmmexec is None:
+    candidates =  [os.path.join(path, 'MathKernel') for path in os.environ["PATH"].split(os.pathsep) 
+                   if os.access(os.path.join(path, 'MathKernel'), os.X_OK)]
+    for candidate in candidates:    
+        try:
+            starttext = os.popen("bash -c 'echo |" +  candidate  +"'").read()
+            if starttext[:11] == "Mathematica":			      
+                print("MathKernel (Wolfram version) found at " + candidate)
+                wmmexec = candidate
+                break
+        except Exception:
+            continue
+
+if wmmexec is None:
+    candidates =  [os.path.join(path, 'mathics') for path in os.environ["PATH"].split(os.pathsep) 
+                   if os.access(os.path.join(path, 'mathics'), os.X_OK)]
+    for candidate in candidates:    
+        try:
+            starttext = os.popen("bash -c 'echo |" +  candidate  +"'").read()
+            if starttext[:8] == "\nmathics":			      
+                print("Mathics version found at " + candidate)
+                wmmexec = candidate
+                break
+        except Exception:
+            continue
+
+if wmmexec is None:
+    print("couldn't find a mathics/mathematica interpreter.")
+    sys.exit(-1)
+
 wmmcaller = None
 if "--mma-exec" in sys.argv:
     idx = sys.argv.index("--mma-exec")
