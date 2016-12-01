@@ -7,6 +7,7 @@ from distutils import log
 from IPython.utils.tempdir import TemporaryDirectory
 
 
+
 import json
 import os
 import sys
@@ -45,24 +46,7 @@ if "--mma-exec" in sys.argv:
 
 class install_with_kernelspec(install):
     def run(self):
-        # global wmmcaller
         global wmmexec
-        # Determine if the executable is Wolfram Mathematica or mathics
-        # starttext = os.popen("bash -c 'echo |" +  wmmexec  +"'").read()
-        # if starttext[:11] == "Mathematica":
-        #     wmmcaller =  wmmexec
-            # if wmmcaller is None:
-            #     wmmcaller = '/usr/local/bin/iwolframcaller.sh'
-            # with open(wmmcaller,'w') as f:
-            #     f.write("#!/bin/sh\n\n")
-            #     f.write("# sh envelopment for the true math command ")
-            #     f.write("necesary to avoid the kernel hangs on jupyterhub\n\n\n ")
-            #     f.write(wmmexec + " $@")
-            # os.chmod(wmmcaller, 0o755)
-        # else:
-        #     wmmcaller = wmmexec
-
-        # Build the configuration file
         configfilestr = "# iwolfram configuration file\nmathexec = '{wolfram-caller-script-path}'\n\n"
         configfilestr = configfilestr.replace('{wolfram-caller-script-path}',wmmexec)
         with open('wolfram_kernel/config.py','w') as f:
@@ -72,7 +56,6 @@ class install_with_kernelspec(install):
         install.run(self)
 
         print("Installing kernel spec")        
-
         #Build and Install the kernelspec
         from wolfram_kernel.wolfram_kernel import WolframKernel
         kernel_json = WolframKernel.kernel_json        
@@ -91,6 +74,9 @@ class install_with_kernelspec(install):
                 install_kernel_spec(td, kernel_name, user=not self.user,
                                 replace=True)
 
+        from notebook.nbextensions import install_nbextension        
+        install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
+        
 
 setup(name='wolfram_kernel',
       version='0.11.3',
@@ -99,17 +85,21 @@ setup(name='wolfram_kernel',
       url='https://github.com/matera/iwolfram/tree/master/iwolfram',
       author='Juan Mauricio Matera',
       author_email='matera@fisica.unlp.edu.ar',
-      packages=['wolfram_kernel','wolfram_kernel.web'],
+      packages=['wolfram_kernel','nbmathics'],
       cmdclass={'install': install_with_kernelspec},
       install_requires=['metakernel', 'mathics'],
       package_data={
           'wolfram_kernel': ['init.m'],
-        'wolfram_kernel.web': [ 
-            'media/css/*.css', 'media/img/*.gif',
-            'media/js/innerdom/*.js', 'media/js/prototype/*.js',
-            'media/js/scriptaculous/*.js', 'media/js/three/Three.js',
-            'media/js/three/Detector.js', 'media/js/*.js', 'templates/*.html',
-            'templates/doc/*.html'] + list(subdirs('media/js/mathjax/')),   
+          'nbmathics': ['nbmathics/static/img/*.gif',
+                        'nbmathics/static/css/*.css',
+                        'nbmathics/static/*.js',
+                        'nbmathics/static/js/*.js',
+                        'nbmathics/static/js/innerdom/*.js',
+                        'nbmathics/static/js/prototype/*.js',
+                        'nbmathics/static/js/scriptaculous/*.js',
+                        'nbmathics/static/js/tree/Three.js',
+                        'nbmathics/static/js/tree/Detector.js',
+                         ] + list(subdirs('media/js/mathjax/')),   
       },
       classifiers = [
           'Framework :: IPython',
