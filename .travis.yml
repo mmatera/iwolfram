@@ -5,6 +5,7 @@ python:
   - 3.4
   - 3.3
 before_install:
+  - sudo python --version
   - sudo pip install git+https://github.com/mmatera/mathics
   - sudo pip install ipywidgets
   - sudo pip install ipykernel
