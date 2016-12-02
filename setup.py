@@ -105,8 +105,27 @@ class install_with_kernelspec(install):
 
         print("Installing kernel spec")        
         #Build and Install the kernelspec
-        from wolfram_kernel.wolfram_kernel import WolframKernel
-        kernel_json = WolframKernel.kernel_json        
+        self.install_kernelspec()
+
+        def install_kernelspec(self):
+            from ipykernel.kernelspec import write_kernel_spec
+            from jupyter_client.kernelspec import KernelSpecManager
+            from wolfram_kernel.wolfram_kernel import WolframKernel
+            kernel_json = WolframKernel.kernel_json
+        
+            kernel_spec_manager = KernelSpecManager()
+            log.info('Writing kernel spec')
+            kernel_spec_path = write_kernel_spec(overrides=kernel_json)
+            log.info('Installing kernel spec')
+            try:
+                kernel_spec_manager.install_kernel_spec(
+                    kernel_spec_path,
+                    kernel_name=kernel_json['name'],
+                        user=self.user)
+            except:
+                log.error('Failed to install kernel spec')
+        
+        
         with TemporaryDirectory() as td:        
             os.chmod(td, 0o755)  # Starts off as 700, not user readable
             with open(os.path.join(td, 'kernel.json'), 'w') as f:
