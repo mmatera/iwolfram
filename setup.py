@@ -106,6 +106,9 @@ class install_with_kernelspec(install):
         print("Installing kernel spec")        
         #Build and Install the kernelspec
         self.install_kernelspec()
+        self.log.info("Installing nbextension")
+        from notebook.nbextensions import install_nbextension        
+        install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
 
         def install_kernelspec(self):
             from ipykernel.kernelspec import write_kernel_spec
@@ -124,25 +127,6 @@ class install_with_kernelspec(install):
                         user=self.user)
             except:
                 log.error('Failed to install kernel spec')
-        
-        
-        with TemporaryDirectory() as td:        
-            os.chmod(td, 0o755)  # Starts off as 700, not user readable
-            with open(os.path.join(td, 'kernel.json'), 'w') as f:
-                json.dump(kernel_json, f, sort_keys=True)
-            
-            log.info('Installing kernel spec')            
-            #install_kernel_resources(td,files=['logo-64x64.png'])
-            kernel_name = kernel_json['name']
-            try:
-                install_kernel_spec(td, kernel_name, user=self.user,
-                                replace=True)
-            except:
-                install_kernel_spec(td, kernel_name, user=not self.user,
-                                replace=True)
-
-        from notebook.nbextensions import install_nbextension        
-        install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
         
 
 setup(name='wolfram_kernel',
