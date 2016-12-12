@@ -119,7 +119,8 @@ class install_with_kernelspec(install):
                     kernel_name=kernel_json['name'],
                         user=self.user)
             except:
-                log.error('Failed to install kernel spec')
+                self.log.error(kernel_spec_path)
+                self.log.error('Failed to install kernel spec')
                 
         print("Installing kernel spec")        
         #Build and Install the kernelspec
