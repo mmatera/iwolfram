@@ -123,7 +123,7 @@ class install_with_kernelspec(install):
                 
         print("Installing kernel spec")        
         #Build and Install the kernelspec
-        self.install_kernelspec()
+        install_kernelspec()
         self.log.info("Installing nbextension")
         from notebook.nbextensions import install_nbextension        
         install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
