@@ -119,13 +119,12 @@ class install_with_kernelspec(install):
                     kernel_name=kernel_json['name'],
                         user=self.user)
             except:
-                self.log.error(kernel_spec_path)
-                self.log.error('Failed to install kernel spec')
+                log.error('Failed to install kernel spec in ' + kernel_spec_path)
                 
         print("Installing kernel spec")        
         #Build and Install the kernelspec
         install_kernelspec(self)
-        self.log.info("Installing nbextension")
+        log.info("Installing nbextension")
         from notebook.nbextensions import install_nbextension        
         install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
 
