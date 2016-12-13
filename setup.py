@@ -91,10 +91,17 @@ if "--mma-exec" in sys.argv:
 
 
 
+def _is_root():
+    try:
+        return os.geteuid() == 0
+    except AttributeError:
+        return False  # assume not an admin on non-Unix platforms
+
 
 class install_with_kernelspec(install):
     def run(self):
         global wmmexec
+        user = '--user' in sys.argv or not _is_root()
         configfilestr = "# iwolfram configuration file\nmathexec = '{wolfram-caller-script-path}'\n\n"
         configfilestr = configfilestr.replace('{wolfram-caller-script-path}',wmmexec)
         with open('wolfram_kernel/config.py','w') as f:
@@ -117,9 +124,14 @@ class install_with_kernelspec(install):
                 kernel_spec_manager.install_kernel_spec(
                     kernel_spec_path,
                     kernel_name=kernel_json['name'],
-                        user=self.user)
+                        user=user)
             except:
                 log.error('Failed to install kernel spec in ' + kernel_spec_path)
+                kernel_spec_manager.install_kernel_spec(
+                    kernel_spec_path,
+                    kernel_name=kernel_json['name'],
+                        user=not user)
+
                 
         print("Installing kernel spec")        
         #Build and Install the kernelspec
