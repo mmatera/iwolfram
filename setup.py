@@ -126,8 +126,10 @@ class install_with_kernelspec(install):
         install_kernelspec(self)
         log.info("Installing nbextension")
         from notebook.nbextensions import install_nbextension        
-        install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
-
+        try:
+            install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
+        except:
+            log.info("nbextension can not be installed")
         
         
 
