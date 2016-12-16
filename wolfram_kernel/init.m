@@ -72,7 +72,7 @@ JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[
 
 (*Definitions depending on the platform*)
 If[StringTake[$Version,{1,7}] == "Mathics", 
-   Print["Defining system dependent expressions for mathics"];
+   (*Print["Defining system dependent expressions for mathics"];*)
    JupyterReturnImage = JupyterReturnImageFileSVG;
    JupyterReturnValue[v_String]:= "string:"<>v;   
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
@@ -80,7 +80,7 @@ If[StringTake[$Version,{1,7}] == "Mathics",
 							   ToString[InputForm[v]]);
    JupyterSTDOUT = OutputStream["stdout", 1];
    ,(*Else*)
-   Print["Defining system dependent expressions for mma "];
+   (*Print["Defining system dependent expressions for mma "];*)
    JupyterReturnImage = JupyterReturnImageFilePNG;
    JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"BASE64"];
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
