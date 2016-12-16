@@ -14,7 +14,7 @@ $DisplayFunction=Identity;
 
 (*Internals: Hacks Print and Message to have the proper format*)
 
-Begin["Private`"];
+Begin["Jupyter`Private`"];
 
 
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;]
