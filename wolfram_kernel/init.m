@@ -13,7 +13,8 @@ $DisplayFunction=Identity;
 
 
 (*Internals: Hacks Print and Message to have the proper format*)
-Begin["Private`"];
+
+Begin["Jupyter`Private`"];
 
 
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;]
@@ -70,8 +71,8 @@ JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]],
 JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[ExportString[v,"wav"],"BASE64"]
 
 (*Definitions depending on the platform*)
-If[Mathics, 
-   Print["Defining system dependent expressions for mathics"];
+If[StringTake[$Version,{1,7}] == "Mathics", 
+   (*Print["Defining system dependent expressions for mathics"];*)
    JupyterReturnImage = JupyterReturnImageFileSVG;
    JupyterReturnValue[v_String]:= "string:"<>v;   
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
@@ -79,7 +80,7 @@ If[Mathics,
 							   ToString[InputForm[v]]);
    JupyterSTDOUT = OutputStream["stdout", 1];
    ,(*Else*)
-   Print["Defining system dependent expressions for mma "]
+   (*Print["Defining system dependent expressions for mma "];*)
    JupyterReturnImage = JupyterReturnImageFilePNG;
    JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"BASE64"];
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
