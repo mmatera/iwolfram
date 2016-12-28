@@ -17,7 +17,7 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # Optional --------------------------------------
 
     # Code in the kernel's language to write "hello, world" to stdout
-    code_hello_world = 'Print["hello, world"]'
+    code_hello_world = 'Print["hello, world"]\n'
 
     # code which should print something to stderr
     code_stderr = 'OpenWrite["/proc"]'
