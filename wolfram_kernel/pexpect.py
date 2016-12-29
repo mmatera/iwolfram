@@ -1,4 +1,5 @@
-from metakernel.pexpect import spawnu, EOF, TIMEOUT, ExceptionPexpect
+from metakernel.pexpect import spawnu, EOF, TIMEOUT
+#, ExceptionPexpect
 
 
 

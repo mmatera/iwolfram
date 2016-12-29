@@ -76,19 +76,6 @@ if wmmexec is None:
     print("couldn't find a mathics/mathematica interpreter.")
     sys.exit(-1)
 
-wmmcaller = None
-if "--mma-exec" in sys.argv:
-    idx = sys.argv.index("--mma-exec")
-    sys.argv.pop(idx)
-    wmmexec = sys.argv.pop(idx) 
-
-# if "--iwolfram-mathkernel-path" in sys.argv:
-#     idx = sys.argv.index("--iwolfram-mathkernel-path")
-#     sys.argv.pop(idx)
-#     wmmcaller = sys.argv.pop(idx) 
-
-
-
 
 
 class install_with_kernelspec(install):
