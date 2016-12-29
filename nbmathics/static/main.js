@@ -38,6 +38,8 @@ define(
 	    escLitToUTFSymbol[">"]  = "〉";
 	    escLitToUTFSymbol["<="] = "≤";
 	    escLitToUTFSymbol[">="]  = "≥";
+	    escLitToUTFSymbol["dg"]  = "†";
+	    escLitToUTFSymbol["ct"]  = "";
 
 	    
 	    var handlerCtrlEsc = function(){

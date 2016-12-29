@@ -40,9 +40,10 @@ class WolframKernel(ProcessMetaKernel):
     language_info = {
         'exec': mathexec,
         'mimetype': 'text/x-mathics',
-        'name': 'wolfram_kernel',
+        'name': 'Mathematica',
         'file_extension': '.m',
         'help_links': MetaKernel.help_links,
+	'version': '0.0.0',
     }
 
     kernel_json = {
@@ -95,7 +96,7 @@ class WolframKernel(ProcessMetaKernel):
 
     def print(self, msg):
         self.send_response(self.iopub_socket, 'stream',
-                           {'wait': True, 'name': "stdout", 'text': msg+"\n"} )
+                           {'wait': True, 'name': "stdout", 'text': msg} )
         return
 
         
@@ -308,7 +309,6 @@ class WolframKernel(ProcessMetaKernel):
                 # If there was a resp before, calls post_execute and continue. This have to be here because for the last line,
                 # post_execute is called directly from the main loop of  MetaKernel
                 if not resp is None :
-                    # print(resp)
                     self.post_execute(resp, prevcmd, False)
                 resp = self.do_execute_direct_single_command(lastline)
                 resp = self.postprocess_response(resp.output)
@@ -388,6 +388,8 @@ class WolframKernel(ProcessMetaKernel):
                                 raise MMASyntaxError(lastmessage[0:p],-1,lastmessage[p+1:])
                             if lastmessage[0:11] == "Power::infy":
                                 raise MMASyntaxError(lastmessage[0:11],lastmessage[13:])
+                            if lastmessage[0:18] == "OpenWrite::noopen":
+                                raise MMASyntaxError(lastmessage[0:18],lastmessage[20:])                        
                         elif messagetype == "P":
                             self.print(lastmessage)                            
                         messagefound = False
@@ -416,7 +418,8 @@ class WolframKernel(ProcessMetaKernel):
                         messagelength = int(liner[2:(k-1)])
                         lastmessage = lastmessage + liner[k:]
                     else: # For some reason, Information do not pass through Print or  $PrePrint
-                        self.print(liner)
+                        if liner != "":
+                            self.print(liner)
                 else: #Shouldn't happen
                     self.print("extra line? " + liner)
         else:
