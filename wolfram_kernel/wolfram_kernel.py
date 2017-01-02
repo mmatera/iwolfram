@@ -127,9 +127,9 @@ class WolframKernel(ProcessMetaKernel):
         else:
             cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
         self.log.warning("Building the process wrapper...")
-        myspawner = spawnu(cmdline, errors="ignore", echo=True)
+        myspawner = spawnu(cmdline, errors="ignore", echo=False)
         replwrapper = REPLWrapper(myspawner, orig_prompt, change_prompt,
-                                  prompt_emit_cmd=None, echo=True)
+                                  prompt_emit_cmd=None, echo=False)
         self.log.warning("                                ... done")
         return replwrapper
 
@@ -378,6 +378,8 @@ class WolframKernel(ProcessMetaKernel):
         sangria = 0
         if self.is_wolfram:
             for linnum, liner in enumerate(lineresponse):
+                if linnum == 0:
+                    continue
                 if outputfound:
                     if liner.strip() == "":
                         continue
@@ -491,7 +493,6 @@ class WolframKernel(ProcessMetaKernel):
 
         if mmaexeccount > 0:
             self.execution_count = mmaexeccount
-
         return(outputtext)
 
     def postprocess_response(self, outputtext):
