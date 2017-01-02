@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from metakernel import MetaKernel, ProcessMetaKernel, REPLWrapper,u
+from metakernel import MetaKernel, ProcessMetaKernel, REPLWrapper, u
 from metakernel.process_metakernel import TextOutput
 from metakernel.pexpect import EOF, spawnu
 from .pexpect import myspawn
@@ -23,13 +23,14 @@ try:
 except Exception:
     mathexec = "mathics"
 
-class MMASyntaxError(BaseException):
-    def __init__(self,val=0,name="",traceback=None):
-        self.val=val
-        self.name=name
-        self.traceback=traceback
 
-        
+class MMASyntaxError(BaseException):
+    def __init__(self, val=0, name="", traceback=None):
+        self.val = val
+        self.name = name
+        self.traceback = traceback
+        self.is_wolfram = None
+
 
 class WolframKernel(ProcessMetaKernel):
     implementation = 'Wolfram Mathematica Kernel'
@@ -43,15 +44,17 @@ class WolframKernel(ProcessMetaKernel):
         'name': 'Mathematica',
         'file_extension': '.m',
         'help_links': MetaKernel.help_links,
-	'version': '0.0.0',
+        'version': '0.0.0',
     }
 
     kernel_json = {
-        'argv': [ sys.executable, '-m', 'wolfram_kernel', '-f', '{connection_file}'],
+        'argv': [sys.executable, '-m', 'wolfram_kernel',
+                 '-f', '{connection_file}'],
         'display_name': 'Wolfram Mathematica',
         'language': 'mathematica',
-        'name': 'wolfram_kernel'
+        'name': 'wolfram_kernel',
     }
+
     def get_usage(self):
         return "This is the Wolfram Mathematica kernel."
 
@@ -71,15 +74,16 @@ class WolframKernel(ProcessMetaKernel):
         return self._banner
 
     def check_wolfram(self):
-        starttext = os.popen("bash -c 'echo |" +  self.language_info['exec']  +"'").read()
-        if starttext[:11] == "Mathematica":			      
+        starttext = os.popen("bash -c 'echo |" +
+                             self.language_info['exec'] + "'").read()
+        if starttext[:11] == "Mathematica":
             self.is_wolfram = True
         else:
             self.is_wolfram = False
         return self.is_wolfram
 
-    def __init__(self,*args, **kwargs):
-        super(WolframKernel,self).__init__(*args,**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(WolframKernel, self).__init__(*args, **kwargs)
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
         self.log.warning("help required")
@@ -88,45 +92,46 @@ class WolframKernel(ProcessMetaKernel):
         else:
             return "Sorry, no help is available on '%s'." % info['code']
 
-
     def show_warning(self, warning):
         self.send_response(self.iopub_socket, 'stream',
-                           {'wait': True, 'name': "stderr", 'text': warning} )
+                           {'wait': True, 'name': "stderr", 'text': warning})
         return
 
     def print(self, msg):
         self.send_response(self.iopub_socket, 'stream',
-                           {'wait': True, 'name': "stdout", 'text': msg} )
+                           {'wait': True, 'name': "stdout", 'text': msg})
         return
 
-        
-        
     def makeWrapper(self):
         """
-	Start a math/mathics kernel and return a :class:`REPLWrapper` object.
+        Start a math/mathics kernel and return a :class:`REPLWrapper` object.
         """
         self.js_libraries_loaded = False
-        orig_prompt = u('In\[.*\]:=')  # Maybe we can consider as prompt P:, M: and Out[]:= to catch all signals in real time
+        # Maybe we can consider as prompt P:, M: and
+        # Out[]:= to catch all signals in real time
+        orig_prompt = u('In\[.*\]:=')
         prompt_cmd = None
         change_prompt = None
         self.check_wolfram()
 
-        
         if not self.is_wolfram:
-            cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" +  self.initfilename + "'"
+            cmdline = self.language_info['exec'] +
+            " --colors NOCOLOR --persist '" +
+            self.initfilename + "'"
         else:
-            cmdline = self.language_info['exec'] + " -initfile '"+ self.initfilename+"'"
+            cmdline = self.language_info['exec'] + " -initfile '"
+            + self.initfilename + "'"
         self.log.warning("Building the process wrapper...")
-        myspawner =  spawnu(cmdline, errors="ignore", echo = True)
+        myspawner = spawnu(cmdline, errors="ignore", echo=True)
         replwrapper = REPLWrapper(myspawner, orig_prompt, change_prompt,
-                                  prompt_emit_cmd = None, echo=True)
+                                  prompt_emit_cmd=None, echo=True)
         self.log.warning("                                ... done")
         return replwrapper
 
     def check_js_libraries_loaded(self):
         if self.js_libraries_loaded:
             return
-        jscode="""
+        jscode = """
            if(document.getElementById("graphics3dScript") == null){
                var tagg = document.createElement('script');
                tagg.type = "text/javascript";
@@ -137,10 +142,8 @@ class WolframKernel(ProcessMetaKernel):
                alert("library 3d loaded");
           }else{alert("library 3d was loaded before");}
         """
-        self.Display(Javascript(jscode))        
+        self.Display(Javascript(jscode))
         self.js_libraries_loaded = True
-
-
 
     def do_execute_direct_single_command(self, code, stream_handler=None):
         """Execute the code in the subprocess.
@@ -157,13 +160,14 @@ class WolframKernel(ProcessMetaKernel):
                 'user_expressions': {},
             }
             return
-        
+
         interrupted = False
         output = ''
         try:
             output = self.wrapper.run_command(code.rstrip(), timeout=-1,
-                                     stream_handler=stream_handler)
-# TODO:  instead of proccess_response, it would be better to capture the prints and warnings at the moment they are sended.
+                                              stream_handler=stream_handler)
+# TODO:  instead of proccess_response, it would be better
+# to capture the prints and warnings at the moment they are sended.
             output = self.process_response(output)
             if stream_handler is not None:
                 output = ''
@@ -210,18 +214,16 @@ class WolframKernel(ProcessMetaKernel):
 
         return TextOutput(output)
 
-
-
-
     def update_bracket_string(self, bracketstring, codeline):
         escape = False
         codeline = codeline.strip()
-        if codeline == "" :
+        if codeline == "":
             return bracketstring
-        
+
         string_open = bracketstring != "" and bracketstring[-1] == '"'
- 
-        if  not string_open and  bracketstring != "" and  bracketstring[-1] in ['+','-','*','/','>','<','=','^',',']:    
+
+        if not string_open and bracketstring != "" and
+        bracketstring[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ',']:
             bracketstring = bracketstring[:-1]
 
         for c in codeline:
@@ -236,50 +238,48 @@ class WolframKernel(ProcessMetaKernel):
                 continue
             if c == '"':
                 string_open = True
-                bracketstring = bracketstring +  '"'
+                bracketstring = bracketstring + '"'
                 continue
-            if c in ['(','[','{']:
+            if c in ['(', '[', '{']:
                 bracketstring = bracketstring + c
             if c == ')':
                 if bracketstring == "":
-                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
                 if bracketstring[-1] == '(':
                     bracketstring = bracketstring[:-1]
                 else:
-                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
             if c == ']':
                 if bracketstring == "":
-                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
                 if bracketstring[-1] == '[':
                     bracketstring = bracketstring[:-1]
                 else:
-                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
             if c == '}':
                 if bracketstring == "":
-                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
                 if bracketstring[-1] == '{':
                     bracketstring = bracketstring[:-1]
                 else:
-                    raise MMASyntaxError("Syntax::sntxf",-1,codeline)                    
-        if  codeline[-1] in ['+','-','*','/','>','<','=','^',','] and not string_open:    
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+        if codeline[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ','] and
+        not string_open:
             bracketstring = bracketstring + codeline[-1]
         return bracketstring
-        
-
-
-
-
 
     def do_execute_direct(self, code):
         """
-        If code is a single line, execute it and postprocess it. For a multiline code, 
-        it splits it and call for each line do_execute_direct_single_line(). For all
-        except the last codeline, it calls to MetaKernel.post_execute() to send the 
-        output to the Kernel. For the last codeline, it leaves thist task to Metakernel.
+        If code is a single line, execute it and postprocess it.
+        For a multiline code, it splits it and call for each line
+        do_execute_direct_single_line(). For all except the last
+        codeline, it calls to MetaKernel.post_execute() to send the
+        output to the Kernel. For the last codeline, it leaves this
+        task to Metakernel.
         """
         # self.check_js_libraries_loaded()
         # Processing multiline code
-        codelines =  [codeline.strip() for codeline in  code.splitlines()]
+        codelines = [codeline.strip() for codeline in code.splitlines()]
         lastline = ""
         prevcmd = ""
         resp = None
@@ -287,7 +287,8 @@ class WolframKernel(ProcessMetaKernel):
         bracketstring = ""
         for codeline in codelines:
             try:
-                bracketstring = self.update_bracket_string(bracketstring,codeline)
+                bracketstring = self.update_bracket_string(bracketstring,
+                                                           codeline)
                 if bracketstring != "" and bracketstring[-1] == '"':
                     codeline = codeline + "\\n"
             except MMASyntaxError as e:
@@ -298,17 +299,20 @@ class WolframKernel(ProcessMetaKernel):
                     'traceback': e.traceback,
                 }
                 return
-            # If brackets are not balanced, add codeline to lastline and continue
+            # If brackets are not balanced, add codeline
+            # to lastline and continue
             if bracketstring != "":
-                lastline = lastline + codeline 
+                lastline = lastline + codeline
                 continue
             # If brackets are balanced, and the new line is empty:
             if codeline == "":
                 if lastline == "":
                     continue
-                # If there was a resp before, calls post_execute and continue. This have to be here because for the last line,
-                # post_execute is called directly from the main loop of  MetaKernel
-                if not resp is None :
+                # If there was a resp before, calls post_execute and
+                # continue. This have to be here because for the last
+                # line, post_execute is called directly from the main
+                # loop of MetaKernel
+                if resp is not None:
                     self.post_execute(resp, prevcmd, False)
                 resp = self.do_execute_direct_single_command(lastline)
                 resp = self.postprocess_response(resp.output)
@@ -321,14 +325,15 @@ class WolframKernel(ProcessMetaKernel):
         if lastline == "":
             return resp
         else:
-            if not resp  is None :
+            if resp is not None:
                 self.post_execute(resp, prevcmd, False)
 
-        # If the last line is complete: 
+        # If the last line is complete:
         if bracketstring != "":
-            if bracketstring[-1] in ['(','[','{']:
+            if bracketstring[-1] in ['(', '[', '{']:
                 errname = "Syntax::bktmcp"
-                self.show_warning("Syntax::bktmcp: Expression has no closing" + bracketstring[-1])
+                self.show_warning("Syntax::bktmcp: Expression has no closing" +
+                                  bracketstring[-1])
             else:
                 errname = "Syntax::tsntxi"
                 self.show_warning("Syntax::bktmcp: Expression incomplete.")
@@ -338,25 +343,25 @@ class WolframKernel(ProcessMetaKernel):
                 'ename': errname, 'evalue': "-1",
                 'traceback': lastline,
             }
-            return 
+            return
 
         # Evaluating last valid code line
-        ##
-        ## TODO: Implement the functionality of PrePrint in mathics. It would fix also the call for %# as part of expressions.
-        ##
-        if not self.is_wolfram:        
+        # #
+        # # TODO: Implement the functionality of PrePrint in mathics.
+        # # It would fix also the call for %# as part of expressions.
+        # #
+        if not self.is_wolfram:
             lastline = "$PrePrint[" + lastline + "]"
 
-
-        resp =  self.do_execute_direct_single_command(lastline)
+        resp = self.do_execute_direct_single_command(lastline)
         return self.postprocess_response(resp.output)
 
-
-    
     def process_response(self, resp):
         """
-        This routine splits the output from messages and prints generated before it, and send the corresponding messages.
-        It would be better to capture them on the flight, at the very moment when the process print them, but it would involve a 
+        This routine splits the output from messages
+        and prints generated before it, and send the corresponding messages.
+        It would be better to capture them on the flight, at the very moment
+        when the process print them, but it would involve a
         change in the wrapper.
         """
         lineresponse = resp.splitlines()
@@ -375,7 +380,7 @@ class WolframKernel(ProcessMetaKernel):
                         continue
                     if liner[:4] == "Out[":
                         break
-                    outputtext = outputtext  + liner
+                    outputtext = outputtext + liner
                 elif messagefound:
                     lastmessage = lastmessage + "\n" + liner
                     if len(lastmessage) >= messagelength:
@@ -385,24 +390,27 @@ class WolframKernel(ProcessMetaKernel):
                                 for p in range(len(lastmessage)):
                                     if lastmessage[p] == ":":
                                         break
-                                raise MMASyntaxError(lastmessage[0:p],-1,lastmessage[p+1:])
+                                raise MMASyntaxError(lastmessage[0:p], -1,
+                                                     lastmessage[p+1:])
                             if lastmessage[0:11] == "Power::infy":
-                                raise MMASyntaxError(lastmessage[0:11],lastmessage[13:])
+                                raise MMASyntaxError(lastmessage[0:11],
+                                                     lastmessage[13:])
                             if lastmessage[0:18] == "OpenWrite::noopen":
-                                raise MMASyntaxError(lastmessage[0:18],lastmessage[20:])                        
+                                raise MMASyntaxError(lastmessage[0:18],
+                                                     lastmessage[20:])
                         elif messagetype == "P":
-                            self.print(lastmessage)                            
+                            self.print(lastmessage)
                         messagefound = False
                         messagelength = 0
                         messagetype = ""
                         lastmessage = ""
                     continue
-                elif not outputfound and not messagefound  :
+                elif not outputfound and not messagefound:
                     if liner[:4] == "Out[":
                         outputfound = True
                         for pos in range(len(liner) - 4):
                             if liner[pos + 4] == ']':
-                                mmaexeccount = int(liner[4:(pos + 4)]) 
+                                mmaexeccount = int(liner[4:(pos + 4)])
                                 outputtext = liner[(pos + 7):] + "\n"
                                 sangria = pos + 7
                                 break
@@ -417,10 +425,11 @@ class WolframKernel(ProcessMetaKernel):
                                 break
                         messagelength = int(liner[2:(k-1)])
                         lastmessage = lastmessage + liner[k:]
-                    else: # For some reason, Information do not pass through Print or  $PrePrint
+                    else:  # For some reason, Information do not pass
+                            # through Print or  $PrePrint
                         if liner != "":
                             self.print(liner)
-                else: #Shouldn't happen
+                else:  # Shouldn't happen
                     self.print("extra line? " + liner)
         else:
             for linnum, liner in enumerate(lineresponse):
@@ -429,7 +438,7 @@ class WolframKernel(ProcessMetaKernel):
                         continue
                     if liner[:4] == "Out[":
                         break
-                    outputtext = outputtext  + liner
+                    outputtext = outputtext + liner
                 elif messagefound:
                     lastmessage = lastmessage + "\n" + liner
                     if len(lastmessage) >= messagelength:
@@ -439,22 +448,24 @@ class WolframKernel(ProcessMetaKernel):
                                 for p in range(len(lastmessage)):
                                     if lastmessage[p] == ":":
                                         break
-                                raise MMASyntaxError(lastmessage[0:p],-1,lastmessage[p+1:])
+                                raise MMASyntaxError(lastmessage[0:p], -1,
+                                                     lastmessage[p+1:])
                             if lastmessage[0:11] == "Power::infy":
-                                raise MMASyntaxError(lastmessage[0:11],lastmessage[13:])
+                                raise MMASyntaxError(lastmessage[0:11],
+                                                     lastmessage[13:])
                         elif messagetype == "P":
-                            self.print(lastmessage)                            
+                            self.print(lastmessage)
                         messagefound = False
                         messagelength = 0
                         messagetype = ""
                         lastmessage = ""
                     continue
-                elif not outputfound and not messagefound  :
+                elif not outputfound and not messagefound:
                     if liner[:4] == "Out[":
                         outputfound = True
                         for pos in range(len(liner) - 4):
                             if liner[pos + 4] == ']':
-                                mmaexeccount = int(liner[4:(pos + 4)]) 
+                                mmaexeccount = int(liner[4:(pos + 4)])
                                 outputtext = liner[(pos + 7):] + "\n"
                                 sangria = pos + 7
                                 break
@@ -469,25 +480,27 @@ class WolframKernel(ProcessMetaKernel):
                                 break
                         messagelength = int(liner[2:(k-1)])
                         lastmessage = lastmessage + liner[k:]
-                    else: # For some reason, Information do not pass through Print or  $PrePrint
+                    else:  # For some reason, Information do not pass
+                            # through Print or  $PrePrint
                         self.print(liner)
-                else: #Shouldn't happen
+                else:  # Shouldn't happen
                     self.print("extra line? " + liner)
 
-        if  mmaexeccount>0:
+        if mmaexeccount > 0:
             self.execution_count = mmaexeccount
-        
+
         return(outputtext)
 
-
-    def postprocess_response(self, outputtext):        
+    def postprocess_response(self, outputtext):
         if(outputtext[:5] == 'null:'):
             return None
         if (outputtext[:7] == 'string:'):
             while outputtext[-1] == "\n":
                 outputtext = outputtext[:-1]
             if self.is_wolfram:
-                outputtext = base64.standard_b64decode(outputtext[7:].rstrip()).decode("utf-8") 
+                outputtext = outputtext[7:].rstrip()
+                outputtext = base64.standard_b64decode(outputtext)
+                outputtext = outputtext.decode("utf-8")
             else:
                 outputtext = outputtext[7:]
             return "    " + outputtext
@@ -496,23 +509,29 @@ class WolframKernel(ProcessMetaKernel):
                 pp = p + 7
                 if outputtext[pp] == ':':
                     lentex = int(outputtext[7:pp])
-                    fullformtxt = outputtext[(pp + lentex + 2):].replace("\"","\\\"")
-                    htmlstr = outputtext[(pp + 1):(pp + lentex + 1)]                    
-                    htmlstr = "<div onclick='alert(\"" +  fullformtxt   +"\");'>" + htmlstr + "</div>"
+                    fullformtxt = outputtext[(pp + lentex + 2):]
+                    fullformtxt = fullformtxt.replace("\"", "\\\"")
+                    htmlstr = outputtext[(pp + 1):(pp + lentex + 1)]
+                    htmlstr = "<div onclick='alert(\"" +
+                    fullformtxt + "\");'>" + htmlstr + "</div>"
 #                    self.Display(HTML(htmlstr))
                     return HTML(htmlstr)
         if (outputtext[:4] == 'tex:'):
             while outputtext[-1] == "\n":
                 outputtext = outputtext[:-1]
             if self.is_wolfram:
-                outputtext = "    " + base64.standard_b64decode(outputtext[4:].rstrip()).decode("utf-8") 
+                outputtext = outputtext[4:].rstrip()
+                outputtext = base64.standard_b64decode(outputtext)
+                outputtext = "    " + outputtext.decode("utf-8")
             else:
                 outputtext = "    " + outputtext[4:]
             for p in range(len(outputtext) - 4):
                 pp = p + 4
                 if outputtext[pp] == ':':
                     lentex = int(outputtext[4:pp])
-                    self.Display(Latex('$' + outputtext[(pp + 1):(pp + lentex + 1)] + '$'))
+                    self.Display(Latex('$' +
+                                       outputtext[(pp + 1):(pp + lentex + 1)] +
+                                       '$'))
                     return outputtext[(pp + lentex + 2):]
 
         if(outputtext[:4] == 'svg:'):
@@ -530,24 +549,27 @@ class WolframKernel(ProcessMetaKernel):
                     self.Display(Image(outputtext[6:pp]))
                     return outputtext[(pp + 1):]
 
-        if(outputtext[:4] in ['jpg:', 'png:'] ):
+        if(outputtext[:4] in ['jpg:', 'png:']):
             for p in range(len(outputtext) - 18):
                 pp = p + 18
                 if outputtext[pp] == ':':
-                    self.Display(HTML("<center><img class='unconfined' src=\"" +   outputtext[4:pp] + "\"></img></center>"))
+                    self.Display(HTML(
+                        "<center><img class='unconfined' src=\"" +
+                        outputtext[4:pp] + "\"></img></center>"))
                     return outputtext[(pp + 1):]
 
         if(outputtext[:4] == 'wav:'):
-            self.Display(Audio(url=outputtext[4:], autoplay = False, embed = True))
+            self.Display(Audio(url=outputtext[4:],
+                               autoplay=False, embed=True))
             return "-- sound --"
 
         if(outputtext[:6] == 'sound:'):
             for p in range(len(outputtext) - 6):
                 pp = p + 6
                 if outputtext[pp] == ':':
-                    self.Display(Audio(url=outputtext[6:pp], autoplay=False, embed=True))
+                    self.Display(Audio(url=outputtext[6:pp],
+                                       autoplay=False, embed=True))
                     return outputtext[(pp + 1):]
-
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
         obj = info.get('help_obj', '')
@@ -556,14 +578,16 @@ class WolframKernel(ProcessMetaKernel):
                 return None
             else:
                 return ""
-        resp = self.do_execute_direct('? %s' % obj)
+        resp = self.wrapper.run_command('? %s' % obj, timeout=-1,
+                                        stream_handler=None)
         return resp
 
     def get_completions(self, info):
         """
         Get completions from kernel based on info dict.
         """
-        query = "Do[Print[n],{n,Names[\"" + info['obj']  + "*\"]}];$Line=$Line-1;"
+        query = "Do[Print[n],{n,Names[\"" +
+        info['obj'] + "*\"]}];$Line=$Line-1;"
         output = self.wrapper.run_command(query, timeout=-1,
                                           stream_handler=None)
         lines = [s for s in output.splitlines() if s != ""]
@@ -575,6 +599,19 @@ class WolframKernel(ProcessMetaKernel):
             resp.append(l[k+3:])
         return resp
 
+    def set_variable(self, var, value):
+        if self.is_wolfram is None:
+            return
+        if type(value) is str:
+            self.do_execute_direct(var + ' = "' + value + '"')
+        elif type(value) is int or type(value) is float:
+            self.do_execute_direct(var + ' = ' + str(value))
+        else:
+            self.do_execute_direct(var + ' = "' + value.__repr__() + '"')
+
+    def get_variable(self, var):
+        return self.do_execute_direct(var).output
+
     def handle_plot_settings(self):
         pass
 
@@ -582,6 +619,6 @@ class WolframKernel(ProcessMetaKernel):
         pass
 
 if __name__ == '__main__':
-#    from ipykernel.kernelapp import IPKernelApp
-#    IPKernelApp.launch_instance(kernel_class=MathicsKernel)
+    #    from ipykernel.kernelapp import IPKernelApp
+    #    IPKernelApp.launch_instance(kernel_class=MathicsKernel)
     WolframKernel.run_as_main()
