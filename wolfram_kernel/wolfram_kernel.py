@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+Widget = None
 from metakernel import MetaKernel, ProcessMetaKernel, REPLWrapper, u
 from metakernel.process_metakernel import TextOutput
 from metakernel.pexpect import EOF, spawnu
@@ -24,6 +25,13 @@ except Exception:
     mathexec = "mathics"
 
 
+if Widget is None:
+    try:
+        from ipywidgets.widgets.widget import Widget
+    except ImportError:
+        pass
+
+    
 class MMASyntaxError(BaseException):
     def __init__(self, val=0, name="", traceback=None):
         self.val = val
@@ -565,6 +573,24 @@ class WolframKernel(ProcessMetaKernel):
                                        autoplay=False, embed=True))
                     return outputtext[(pp + 1):]
 
+    def post_execute(self, retval, code, silent):
+        if (retval is not None):
+            try:
+                data = _formatter(retval, self.repr)
+            except Exception as e:
+                self.Error(e)
+                return
+            content = {
+                'execution_count': self.execution_count,
+                'data': data,
+                'metadata': {},
+            }
+            if not silent:
+                if Widget and isinstance(retval, Widget):
+                    self.Display(retval)
+                    return
+                self.send_response(self.iopub_socket, 'execute_result', content)
+
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
         obj = info.get('help_obj', '')
         if not obj or len(obj.split()) > 1:
@@ -594,23 +620,69 @@ class WolframKernel(ProcessMetaKernel):
         return resp
 
     def set_variable(self, var, value):
-        if self.is_wolfram is None:
+        if not hasattr(self, "is_wolfram"):
             return
+        self.log.warning(value)
         if type(value) is str:
-            self.do_execute_direct(var + ' = "' + value + '"')
-        elif type(value) is int or type(value) is float:
-            self.do_execute_direct(var + ' = ' + str(value))
+            self.do_execute_direct_single_command(var + ' = ' + value )
         else:
-            self.do_execute_direct(var + ' = "' + value.__repr__() + '"')
+            self.do_execute_direct_single_command(var + ' = "' + value.__repr__() + '"')
 
     def get_variable(self, var):
-        return self.do_execute_direct(var).output
+        res = self.do_execute_direct(var)
+        self.log.warning(res)
+        return res
 
     def handle_plot_settings(self):
         pass
 
     def _make_figs(self, plot_dir):
         pass
+
+
+
+def _formatter(data, repr_func):
+    reprs = {}
+    reprs['text/plain'] = repr_func(data)
+
+    lut = [("_repr_png_", "image/png"),
+           ("_repr_jpeg_", "image/jpeg"),
+           ("_repr_html_", "text/html"),
+           ("_repr_markdown_", "text/markdown"),
+           ("_repr_svg_", "image/svg+xml"),
+           ("_repr_latex_", "text/latex"),
+           ("_repr_json_", "application/json"),
+           ("_repr_javascript_", "application/javascript"),
+           ("_repr_pdf_", "application/pdf")]
+
+    for (attr, mimetype) in lut:
+        obj = getattr(data, attr, None)
+        if obj:
+            reprs[mimetype] = obj
+
+    retval = {}
+    for (mimetype, value) in reprs.items():
+        try:
+            value = value()
+        except Exception:
+            pass
+        if not value:
+            continue
+        if isinstance(value, bytes):
+            try:
+                value = value.decode('utf-8')
+            except Exception:
+                value = base64.encodestring(value)
+                value = value.decode('utf-8')
+        try:
+            retval[mimetype] = str(value)
+        except:
+            retval[mimetype] = value
+    return retval
+
+
+
+
 
 if __name__ == '__main__':
     #    from ipykernel.kernelapp import IPKernelApp
