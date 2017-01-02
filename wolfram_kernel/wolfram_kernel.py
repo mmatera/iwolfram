@@ -115,12 +115,9 @@ class WolframKernel(ProcessMetaKernel):
         self.check_wolfram()
 
         if not self.is_wolfram:
-            cmdline = self.language_info['exec'] +
-            " --colors NOCOLOR --persist '" +
-            self.initfilename + "'"
+            cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" + self.initfilename + "'"
         else:
-            cmdline = self.language_info['exec'] + " -rawterm -initfile '" +
-            self.initfilename + "'"
+            cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
         self.log.warning("Building the process wrapper...")
         myspawner = spawnu(cmdline, errors="ignore", echo=True)
         replwrapper = REPLWrapper(myspawner, orig_prompt, change_prompt,
@@ -222,8 +219,7 @@ class WolframKernel(ProcessMetaKernel):
 
         string_open = bracketstring != "" and bracketstring[-1] == '"'
 
-        if not string_open and bracketstring != "" and
-        bracketstring[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ',']:
+        if not string_open and bracketstring != "" and bracketstring[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ',']:
             bracketstring = bracketstring[:-1]
 
         for c in codeline:
@@ -263,8 +259,7 @@ class WolframKernel(ProcessMetaKernel):
                     bracketstring = bracketstring[:-1]
                 else:
                     raise MMASyntaxError("Syntax::sntxf", -1, codeline)
-        if codeline[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ','] and
-        not string_open:
+        if codeline[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ','] and not string_open:
             bracketstring = bracketstring + codeline[-1]
         return bracketstring
 
@@ -512,8 +507,7 @@ class WolframKernel(ProcessMetaKernel):
                     fullformtxt = outputtext[(pp + lentex + 2):]
                     fullformtxt = fullformtxt.replace("\"", "\\\"")
                     htmlstr = outputtext[(pp + 1):(pp + lentex + 1)]
-                    htmlstr = "<div onclick='alert(\"" +
-                    fullformtxt + "\");'>" + htmlstr + "</div>"
+                    htmlstr = "<div onclick='alert(\"" + fullformtxt + "\");'>" + htmlstr + "</div>"
 #                    self.Display(HTML(htmlstr))
                     return HTML(htmlstr)
         if (outputtext[:4] == 'tex:'):
@@ -529,8 +523,8 @@ class WolframKernel(ProcessMetaKernel):
                 pp = p + 4
                 if outputtext[pp] == ':':
                     lentex = int(outputtext[4:pp])
-                    self.Display(Latex('$' +
-                                       outputtext[(pp + 1):(pp + lentex + 1)] +
+                    self.Display(Latex('$' + \
+                                       outputtext[(pp + 1):(pp + lentex + 1)] + \
                                        '$'))
                     return outputtext[(pp + lentex + 2):]
 
@@ -586,7 +580,7 @@ class WolframKernel(ProcessMetaKernel):
         """
         Get completions from kernel based on info dict.
         """
-        query = "Do[Print[n],{n,Names[\"" +
+        query = "Do[Print[n],{n,Names[\"" + \
         info['obj'] + "*\"]}];$Line=$Line-1;"
         output = self.wrapper.run_command(query, timeout=-1,
                                           stream_handler=None)
