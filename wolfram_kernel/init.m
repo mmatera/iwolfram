@@ -122,8 +122,8 @@ Unprotect[Message];
 
 (*Redefine Print*)
  Unprotect[Print];
- Print[s_] := WriteString[OutputStream["stdout", 1],  "
-P:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"]
+ Print[s_] := WriteString[OutputStream["stdout", 1],  
+"P:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"]
  Protect[Print];
 End[];
 EndPackage[];
