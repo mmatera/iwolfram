@@ -5,7 +5,7 @@ BeginPackage["Jupyter`"];
 Jupyter`tmpdir = CreateDirectory[]
 imagewidth = 500
 
-SetImagesWidth[width_]:=(imagewidth =width)
+SetImagesWidth[width_]:=(imagewidth=width)
 
 ImagesWidth[]:=imagewidth
 
@@ -29,7 +29,7 @@ JupyterReturnValue[Null]:="null:"
 						  ToString[InputForm[v]], "BASE64"])
 *)
 JupyterReturnImageFileSVG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".svg"},
-				    Export[fn,v,"svg",ImageSize->Jupyter`imagewidth];
+				    Export[fn, v, "SVG",ImageSize->Jupyter`imagewidth];
 				    "image:" <> fn 			    
 				   ]
 
@@ -44,12 +44,14 @@ JupyterReturnImageFilePNG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure
 				    "image:" <> fn 			    
 				   ]
 
+JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg;base64," <> 
+                                  StringReplace[ExportString[ExportString[v,"SVG", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 JupyterReturnBase64JPG[v_]:= "jpg:" <> "data:image/jpg;base64," <> 
-                                  StringReplace[ExportString[ExportString[v,"jpg", ImageSize->Jupyter`imagewidth],"BASE64"],"\n"->""]
+                                  StringReplace[ExportString[ExportString[v,"jpg", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <> 
-                                  StringReplace[ExportString[ExportString[v,"png", ImageSize->Jupyter`imagewidth],"BASE64"],"\n"->""]
+                                  StringReplace[ExportString[ExportString[v,"png", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 
 JupyterReturnValue[v_Graphics]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -"
@@ -68,24 +70,26 @@ JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]],
 
 
 
-JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[ExportString[v,"wav"],"BASE64"]
+JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[ExportString[v,"wav"],"Base64"]
 
 (*Definitions depending on the platform*)
 If[StringTake[$Version,{1,7}] == "Mathics", 
    (*Print["Defining system dependent expressions for mathics"];*)
-   JupyterReturnImage = JupyterReturnImageFileSVG;
-   JupyterReturnValue[v_String]:= "string:"<>v;   
+   (*   JupyterReturnImage = JupyterReturnImageFileSVG; *)
+   JupyterReturnImage = JupyterReturnBase64SVG; 
+   JupyterReturnValue[v_String]:= "string:"<> ExportString[v, "Base64"];   
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
-				     "tex:"<> ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
-							   ToString[InputForm[v]]);
+				     "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
+							   ToString[InputForm[v]] , "Base64"]);
    JupyterSTDOUT = OutputStream["stdout", 1];
    ,(*Else*)
-   (*Print["Defining system dependent expressions for mma "];*)
-   JupyterReturnImage = JupyterReturnImageFilePNG;
-   JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"BASE64"];
+   (* Print["Defining system dependent expressions for mma "];*)
+   (* JupyterReturnImage = JupyterReturnImageFilePNG; *)
+   JupyterReturnImage = JupyterReturnBase64PNG; 
+   JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"Base64"];
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
-						  ToString[InputForm[v]], "BASE64"]);   
+						  ToString[InputForm[v]], "Base64"]);   
    JupyterSTDOUT = OutputStream["stdout", 1];
   ]
 
