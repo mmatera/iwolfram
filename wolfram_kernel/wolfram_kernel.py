@@ -103,7 +103,6 @@ class WolframKernel(ProcessMetaKernel):
         super(WolframKernel, self).__init__(*args, **kwargs)
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
-        # self.log.warning("help required")
         if none_on_fail:
             return None
         else:
@@ -135,11 +134,9 @@ class WolframKernel(ProcessMetaKernel):
             cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" + self.initfilename + "'"
         else:
             cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
-        # self.log.warning("Building the process wrapper...")
         myspawner = spawnu(cmdline, errors="ignore", echo=False)
         replwrapper = REPLWrapper(myspawner, orig_prompt, change_prompt,
                                   prompt_emit_cmd=None, echo=False)
-        #self.log.warning("                                ... done")
         return replwrapper
 
     def check_js_libraries_loaded(self):
@@ -451,7 +448,6 @@ class WolframKernel(ProcessMetaKernel):
             for linnum, liner in enumerate(lineresponse):
                 if linnum == 0:
                     liner = liner[1:]
-                # self.log.warning(str(linnum) + ": " + liner)
                 if outputfound:
                     if liner.strip() == "":
                         continue
@@ -516,7 +512,6 @@ class WolframKernel(ProcessMetaKernel):
         return(outputtext)
 
     def postprocess_response(self, outputtext):
-        # self.log.warning("*** postprocessing " + outputtext + "...")
         if(outputtext[:5] == 'null:'):
             return None
         if (outputtext[:7] == 'string:'):
@@ -545,7 +540,6 @@ class WolframKernel(ProcessMetaKernel):
             outputtext = outputtext[4:].rstrip()
             outputtext = base64.standard_b64decode(outputtext)
             outputtext = outputtext.decode("utf-8")
-            # self.log.warning("output latex: " + outputtext)
             for p in range(len(outputtext)):
                 if outputtext[p] == ':':
                     lentex = int(outputtext[:p])
@@ -560,14 +554,12 @@ class WolframKernel(ProcessMetaKernel):
                     return ret
 
         if(outputtext[:4] == 'svg:'):
-            #self.log.warning(outputtext[9:)
             for p in range(len(outputtext) - 9):
                 pp = p + 9
                 if outputtext[pp] == ':':
                     self.Display(HTML(
                         "<center><img class='unconfined' src=\"" +
                         outputtext[4:pp] + "\"></img></center>"))
-                    self.log.warning("pp=" + str(pp))
                     return outputtext[(pp + 1):]
 
         if(outputtext[:6] == 'image:'):
@@ -649,7 +641,6 @@ class WolframKernel(ProcessMetaKernel):
     def set_variable(self, var, value):
         if not hasattr(self, "is_wolfram"):
             return
-        # self.log.warning(value)
         if type(value) is str:
             self.do_execute_direct_single_command(var + ' = ' + value )
         else:
@@ -657,7 +648,6 @@ class WolframKernel(ProcessMetaKernel):
 
     def get_variable(self, var):
         res = self.do_execute_direct(var)
-        # self.log.warning(res)
         return res
 
     def handle_plot_settings(self):
