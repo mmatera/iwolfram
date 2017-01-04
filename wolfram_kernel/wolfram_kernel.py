@@ -437,6 +437,8 @@ class WolframKernel(ProcessMetaKernel):
                 else:  # Shouldn't happen
                     self.print("extra line? " + liner)
         else:   #  Mathics
+            import re
+            regexpmsg = re.compile(r"[A-Za-z0-9]*::[A-Za-z0-9]*: .*")
             for linnum, liner in enumerate(lineresponse):
                 if linnum == 0:
                     liner = liner[1:]
@@ -448,7 +450,8 @@ class WolframKernel(ProcessMetaKernel):
                         break
                     outputtext = outputtext + liner
                 elif messagefound:
-                    lastmessage = lastmessage + "\n" + liner
+                    if messagetype == "P":
+                        lastmessage = lastmessage + "\n" + liner
                     if len(lastmessage) >= messagelength:
                         if messagetype == "M":
                             self.show_warning(lastmessage)
@@ -458,9 +461,9 @@ class WolframKernel(ProcessMetaKernel):
                                         break
                                 raise MMASyntaxError(lastmessage[0:p], -1,
                                                      lastmessage[p+1:])
-                            if lastmessage[0:11] == "Power::infy":
-                                raise MMASyntaxError(lastmessage[0:11],
-                                                     lastmessage[13:])
+                            #if lastmessage[0:11] == "Power::infy":
+                            #    raise MMASyntaxError(lastmessage[0:11],
+                            #                         lastmessage[13:])
                         elif messagetype == "P":
                             self.print(lastmessage)
                         messagefound = False
@@ -488,6 +491,11 @@ class WolframKernel(ProcessMetaKernel):
                                 break
                         messagelength = int(liner[2:(k-1)])
                         lastmessage = lastmessage + liner[k:]
+                    elif re.match(regexpmsg, liner):
+                        messagetype = "M"
+                        messagefound = True
+                        messagelength = -1
+                        lastmessage = lastmessage + liner
                     else:  # For some reason, Information do not pass
                             # through Print or  $PrePrint
                         self.print(liner)
