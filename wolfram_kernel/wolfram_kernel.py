@@ -560,18 +560,19 @@ class WolframKernel(ProcessMetaKernel):
                     return ret
 
         if(outputtext[:4] == 'svg:'):
-            for p in range(len(outputtext) - 4):
-                pp = p + 4
+            #self.log.warning(outputtext[9:)
+            for p in range(len(outputtext) - 9):
+                pp = p + 9
                 if outputtext[pp] == ':':
-                    self.log.warning(outputtext[4:pp])
                     self.Display(HTML(
                         "<center><img class='unconfined' src=\"" +
                         outputtext[4:pp] + "\"></img></center>"))
+                    self.log.warning("pp=" + str(pp))
                     return outputtext[(pp + 1):]
 
         if(outputtext[:6] == 'image:'):
-            for p in range(len(outputtext) - 6):
-                pp = p + 6
+            for p in range(len(outputtext) - 10):
+                pp = p + 10
                 if outputtext[pp] == ':':
                     print(outputtext[6:pp])
                     self.Display(Image(outputtext[6:pp]))
