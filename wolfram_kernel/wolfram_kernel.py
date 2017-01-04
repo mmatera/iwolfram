@@ -41,6 +41,15 @@ class MMASyntaxError(BaseException):
 
 
 class WolframKernel(ProcessMetaKernel):
+    class ReturnValue:
+        def __init__(self, value):
+            self.value = value
+            
+        def __repr__(self):
+            return self.value.__str__()
+        
+            
+
     implementation = 'Wolfram Mathematica Kernel'
     implementation_version = __version__,
     language = 'mathematica'
@@ -540,17 +549,24 @@ class WolframKernel(ProcessMetaKernel):
             for p in range(len(outputtext)):
                 if outputtext[p] == ':':
                     lentex = int(outputtext[:p])
-                    self.Display(Latex('$' + \
-                                       outputtext[(p + 1):(p + lentex + 1)] + \
-                                       '$'))
-                    return outputtext[(p + lentex + 2):]
+                    texform = '$' + \
+                              outputtext[(p + 1):(p + lentex + 1)] + \
+                              '$'
+                    #self.Display(Latex('$' + \
+                    #                   outputtext[(p + 1):(p + lentex + 1)] + \
+                    #                   '$'))
+                    ret = self.ReturnValue(outputtext[(p + lentex + 2):])
+                    ret._repr_latex_ = texform
+                    return ret
 
         if(outputtext[:4] == 'svg:'):
             for p in range(len(outputtext) - 4):
                 pp = p + 4
                 if outputtext[pp] == ':':
-                    self.log.warning(outputtext[(pp+1):])
-                    self.Display(Image(outputtext[4:pp]))
+                    self.log.warning(outputtext[4:pp])
+                    self.Display(HTML(
+                        "<center><img class='unconfined' src=\"" +
+                        outputtext[4:pp] + "\"></img></center>"))
                     return outputtext[(pp + 1):]
 
         if(outputtext[:6] == 'image:'):
@@ -653,6 +669,7 @@ class WolframKernel(ProcessMetaKernel):
 
 def _formatter(data, repr_func):
     reprs = {}
+    
     reprs['text/plain'] = repr_func(data)
 
     lut = [("_repr_png_", "image/png"),

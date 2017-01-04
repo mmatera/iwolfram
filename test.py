@@ -22,6 +22,21 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # code which should print something to stderr
     code_stderr = 'OpenWrite["/proc"]'
 
+    # Samples of code which generate a result value (ie, some text
+    # displayed as Out[n])
+    code_execute_result = [
+        {'code': "1+2+4", 'result': "7"}
+    ]
+
+    
+    # Samples of code which should generate a rich display output, and
+    # the expected MIME type
+    # TODO
+    code_display_data = [
+        {'code': "Plot[x,{x,0,1}]", 'mime': "text/html"}
+    ]
+
+
     # Tab completions: in each dictionary, text is the input, which it will
     # try to complete from the end of. matches is the collection of results
     # it should expect.
@@ -29,35 +44,25 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # completion_samples = []
 
     # Code completeness: samples grouped by expected result
-#    complete_code_samples = [
-#        'Sin[1/2]',
-#    ]
-#    incomplete_code_samples = [
-#        'Sin[1',
-#        '1 +',
-#        '"abc ',
-#    ]
-#    invalid_code_samples = [
-#        '{(1 + }2)',
-#    ]
+#    # complete_code_samples = [
+    #    'Sin[1/2]',
+    # ]
+#    # incomplete_code_samples = [
+    #     'Sin[1',
+    #     '1 +',
+    #     '"abc ',
+    # ]
+#    # invalid_code_samples = [
+    #     '{(1 + }2)',
+    # ]
 
     # # Pager: code that should display something (anything) in the pager
     # # TODO
-    # # code_page_something = "help('foldl')"
+    # code_page_something = "?? 'Plus'"
 
     # # Code which the frontend should display an error for
-    # code_generate_error = "1/0"
+    # code_generate_error = '{23,'
 
-    # # Samples of code which generate a result value (ie, some text
-    # # displayed as Out[n])
-#    code_execute_result = [
-#        {'code': "1+2+4", 'result': "7"}
-#    ]
-
-    # # Samples of code which should generate a rich display output, and
-    # # the expected MIME type
-    # # TODO
-    code_display_data = []
 
     # # Which types of history access should be tested (omit this attribute
     # # or use an empty list to test nothing). For history searching,
@@ -69,7 +74,7 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
 
     # # A statement/object to which the kernel should respond with some
     # # information when inspected
-#    code_inspect_sample = "Sin"
+    # code_inspect_sample = "Sin"
 
     # # Code which should cause the kernel to send a clear_output request
     # # to the frontend
