@@ -41,15 +41,6 @@ class MMASyntaxError(BaseException):
 
 
 class WolframKernel(ProcessMetaKernel):
-    class ReturnValue:
-        def __init__(self, value):
-            self.value = value
-            
-        def __repr__(self):
-            return self.value.__str__()
-        
-            
-
     implementation = 'Wolfram Mathematica Kernel'
     implementation_version = __version__,
     language = 'mathematica'
@@ -103,6 +94,7 @@ class WolframKernel(ProcessMetaKernel):
         super(WolframKernel, self).__init__(*args, **kwargs)
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
+        # self.log.warning("help required")
         if none_on_fail:
             return None
         else:
@@ -134,9 +126,11 @@ class WolframKernel(ProcessMetaKernel):
             cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" + self.initfilename + "'"
         else:
             cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
+        # self.log.warning("Building the process wrapper...")
         myspawner = spawnu(cmdline, errors="ignore", echo=False)
         replwrapper = REPLWrapper(myspawner, orig_prompt, change_prompt,
                                   prompt_emit_cmd=None, echo=False)
+        #self.log.warning("                                ... done")
         return replwrapper
 
     def check_js_libraries_loaded(self):
@@ -443,11 +437,10 @@ class WolframKernel(ProcessMetaKernel):
                 else:  # Shouldn't happen
                     self.print("extra line? " + liner)
         else:   #  Mathics
-            import re
-            regexpmsg = re.compile(r"[A-Za-z0-9]*::[A-Za-z0-9]*: .*")
             for linnum, liner in enumerate(lineresponse):
                 if linnum == 0:
                     liner = liner[1:]
+                # self.log.warning(str(linnum) + ": " + liner)
                 if outputfound:
                     if liner.strip() == "":
                         continue
@@ -455,8 +448,7 @@ class WolframKernel(ProcessMetaKernel):
                         break
                     outputtext = outputtext + liner
                 elif messagefound:
-                    if messagetype == "P":
-                        lastmessage = lastmessage + "\n" + liner
+                    lastmessage = lastmessage + "\n" + liner
                     if len(lastmessage) >= messagelength:
                         if messagetype == "M":
                             self.show_warning(lastmessage)
@@ -466,9 +458,9 @@ class WolframKernel(ProcessMetaKernel):
                                         break
                                 raise MMASyntaxError(lastmessage[0:p], -1,
                                                      lastmessage[p+1:])
-                            #if lastmessage[0:11] == "Power::infy":
-                            #    raise MMASyntaxError(lastmessage[0:11],
-                            #                         lastmessage[13:])
+                            if lastmessage[0:11] == "Power::infy":
+                                raise MMASyntaxError(lastmessage[0:11],
+                                                     lastmessage[13:])
                         elif messagetype == "P":
                             self.print(lastmessage)
                         messagefound = False
@@ -496,11 +488,6 @@ class WolframKernel(ProcessMetaKernel):
                                 break
                         messagelength = int(liner[2:(k-1)])
                         lastmessage = lastmessage + liner[k:]
-                    elif re.match(regexpmsg, liner):
-                        messagetype = "M"
-                        messagefound = True
-                        messagelength = -1
-                        lastmessage = lastmessage + liner
                     else:  # For some reason, Information do not pass
                             # through Print or  $PrePrint
                         self.print(liner)
@@ -512,6 +499,7 @@ class WolframKernel(ProcessMetaKernel):
         return(outputtext)
 
     def postprocess_response(self, outputtext):
+        # self.log.warning("*** postprocessing " + outputtext + "...")
         if(outputtext[:5] == 'null:'):
             return None
         if (outputtext[:7] == 'string:'):
@@ -540,31 +528,26 @@ class WolframKernel(ProcessMetaKernel):
             outputtext = outputtext[4:].rstrip()
             outputtext = base64.standard_b64decode(outputtext)
             outputtext = outputtext.decode("utf-8")
+            # self.log.warning("output latex: " + outputtext)
             for p in range(len(outputtext)):
                 if outputtext[p] == ':':
                     lentex = int(outputtext[:p])
-                    texform = '$' + \
-                              outputtext[(p + 1):(p + lentex + 1)] + \
-                              '$'
-                    #self.Display(Latex('$' + \
-                    #                   outputtext[(p + 1):(p + lentex + 1)] + \
-                    #                   '$'))
-                    ret = self.ReturnValue(outputtext[(p + lentex + 2):])
-                    ret._repr_latex_ = texform
-                    return ret
+                    self.Display(Latex('$' + \
+                                       outputtext[(p + 1):(p + lentex + 1)] + \
+                                       '$'))
+                    return outputtext[(p + lentex + 2):]
 
         if(outputtext[:4] == 'svg:'):
-            for p in range(len(outputtext) - 9):
-                pp = p + 9
+            for p in range(len(outputtext) - 4):
+                pp = p + 4
                 if outputtext[pp] == ':':
-                    self.Display(HTML(
-                        "<center><img class='unconfined' src=\"" +
-                        outputtext[4:pp] + "\"></img></center>"))
+                    self.log.warning(outputtext[(pp+1):])
+                    self.Display(Image(outputtext[4:pp]))
                     return outputtext[(pp + 1):]
 
         if(outputtext[:6] == 'image:'):
-            for p in range(len(outputtext) - 10):
-                pp = p + 10
+            for p in range(len(outputtext) - 6):
+                pp = p + 6
                 if outputtext[pp] == ':':
                     print(outputtext[6:pp])
                     self.Display(Image(outputtext[6:pp]))
@@ -641,6 +624,7 @@ class WolframKernel(ProcessMetaKernel):
     def set_variable(self, var, value):
         if not hasattr(self, "is_wolfram"):
             return
+        # self.log.warning(value)
         if type(value) is str:
             self.do_execute_direct_single_command(var + ' = ' + value )
         else:
@@ -648,6 +632,7 @@ class WolframKernel(ProcessMetaKernel):
 
     def get_variable(self, var):
         res = self.do_execute_direct(var)
+        # self.log.warning(res)
         return res
 
     def handle_plot_settings(self):
@@ -660,7 +645,6 @@ class WolframKernel(ProcessMetaKernel):
 
 def _formatter(data, repr_func):
     reprs = {}
-    
     reprs['text/plain'] = repr_func(data)
 
     lut = [("_repr_png_", "image/png"),
