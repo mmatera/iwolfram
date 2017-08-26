@@ -612,7 +612,7 @@ class WolframKernel(ProcessMetaKernel):
         info['obj'] + "*\"]}];$Line=$Line-1;"
         output = self.wrapper.run_command(query, timeout=-1,
                                           stream_handler=None)
-        lines = [s for s in output.splitlines() if s != ""]
+        lines = [s.strip() for s in output.splitlines() if s.strip() != ""]
         resp = []
         for l in lines:
             for k in range(len(l)-2):
