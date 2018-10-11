@@ -532,10 +532,11 @@ class WolframKernel(ProcessMetaKernel):
             for p in range(len(outputtext)):
                 if outputtext[p] == ':':
                     lentex = int(outputtext[:p])
-                    self.Display(Latex('$' + \
+                    latexout = Latex('$' + \
                                        outputtext[(p + 1):(p + lentex + 1)] + \
-                                       '$'))
-                    return outputtext[(p + lentex + 2):]
+                                       '$')
+                    standardout = outputtext[(p + lentex + 2):]
+                    return latexout
 
         if(outputtext[:4] == 'svg:'):
             for p in range(len(outputtext) - 4):
