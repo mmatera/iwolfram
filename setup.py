@@ -44,6 +44,9 @@ if "--mma-exec" in sys.argv:
         elif starttext[:8] == "\nMathics":			      
             print("Using Mathics")
             wmmexec = candidate
+        elif starttext[:21] == "Welcome to Expreduce!":
+            print("Using Expreduce")
+            wmmexec = candidate
     except Exception:
         print(wmmexec  + " is not a valid interpreter. Looking for a valid one.")
             

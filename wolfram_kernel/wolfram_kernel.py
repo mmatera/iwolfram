@@ -37,7 +37,7 @@ class MMASyntaxError(BaseException):
         self.val = val
         self.name = name
         self.traceback = traceback
-        self.is_wolfram = None
+        self.kernel_type = None
 
 
 class WolframKernel(ProcessMetaKernel):
@@ -85,10 +85,14 @@ class WolframKernel(ProcessMetaKernel):
         starttext = os.popen("bash -c 'echo |" +
                              self.language_info['exec'] + "'").read()
         if starttext[:11] == "Mathematica":
-            self.is_wolfram = True
+            self.kernel_type = "wolfram"
+        elif starttext[:8] == "\nMathics":
+            self.kernel_type = "mathics"
+        elif starttext[:21] == "Welcome to Expreduce!":
+            self.kernel_type = "expreduce"
         else:
-            self.is_wolfram = False
-        return self.is_wolfram
+            raise ValueError
+        return self.kernel_type
 
     def __init__(self, *args, **kwargs):
         super(WolframKernel, self).__init__(*args, **kwargs)
@@ -122,7 +126,7 @@ class WolframKernel(ProcessMetaKernel):
         change_prompt = None
         self.check_wolfram()
 
-        if not self.is_wolfram:
+        if self.kernel_type == "mathics":
             cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" + self.initfilename + "'"
         else:
             cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
@@ -353,7 +357,7 @@ class WolframKernel(ProcessMetaKernel):
         # # TODO: Implement the functionality of PrePrint in mathics.
         # # It would fix also the call for %# as part of expressions.
         # #
-        if not self.is_wolfram:
+        if self.kernel_type == "mathics":
             lastline = "$PrePrint[" + lastline + "]"
 
         resp = self.do_execute_direct_single_command(lastline)
@@ -376,7 +380,7 @@ class WolframKernel(ProcessMetaKernel):
         mmaexeccount = -1
         outputtext = "null:"
         sangria = 0
-        if self.is_wolfram:
+        if self.kernel_type in ["wolfram", "expreduce"]:
             for linnum, liner in enumerate(lineresponse):
                 if linnum == 0:
                     continue
@@ -436,7 +440,7 @@ class WolframKernel(ProcessMetaKernel):
                             self.print(liner)
                 else:  # Shouldn't happen
                     self.print("extra line? " + liner)
-        else:   #  Mathics
+        elif self.kernel_type == "mathics":
             for linnum, liner in enumerate(lineresponse):
                 if linnum == 0:
                     liner = liner[1:]
@@ -493,6 +497,8 @@ class WolframKernel(ProcessMetaKernel):
                         self.print(liner)
                 else:  # Shouldn't happen
                     self.print("extra line? " + liner)
+        else:
+            raise ValueError
 
         if mmaexeccount > 0:
             self.execution_count = mmaexeccount
@@ -623,7 +629,7 @@ class WolframKernel(ProcessMetaKernel):
         return resp
 
     def set_variable(self, var, value):
-        if not hasattr(self, "is_wolfram"):
+        if not hasattr(self, "kernel_type"):
             return
         # self.log.warning(value)
         if type(value) is str:
