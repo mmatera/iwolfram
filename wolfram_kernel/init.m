@@ -44,7 +44,7 @@ JupyterReturnImageFilePNG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure
 				    "image:" <> fn 			    
 				   ]
 
-JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg;base64," <> 
+JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg+xml;base64," <> 
                                   StringReplace[ExportString[ExportString[v,"SVG", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 JupyterReturnBase64JPG[v_]:= "jpg:" <> "data:image/jpg;base64," <> 
@@ -85,7 +85,7 @@ If[StringTake[$Version,{1,7}] == "Mathics",
    ,(*Else*)
    (* Print["Defining system dependent expressions for mma "];*)
    (* JupyterReturnImage = JupyterReturnImageFilePNG; *)
-   JupyterReturnImage = JupyterReturnBase64PNG; 
+   JupyterReturnImage = JupyterReturnBase64SVG; 
    JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"Base64"];
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>

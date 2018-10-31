@@ -546,10 +546,10 @@ class WolframKernel(ProcessMetaKernel):
 
         if(outputtext[:4] == 'svg:'):
             for p in range(len(outputtext) - 4):
-                pp = p + 4
+                pp = p + 23
                 if outputtext[pp] == ':':
                     self.log.warning(outputtext[(pp+1):])
-                    self.Display(Image(outputtext[4:pp]))
+                    self.Display(SVG(url=outputtext[4:pp]))
                     return outputtext[(pp + 1):]
 
         if(outputtext[:6] == 'image:'):
