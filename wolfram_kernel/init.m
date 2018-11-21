@@ -7,6 +7,16 @@ imagewidth = 500
 
 SetImagesWidth[width_]:=(imagewidth=width)
 
+
+
+SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
+                                                JupyterReturnImage = JupyterReturnBase64PNG]
+
+
+ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg",
+                                                "png"]
+
+
 ImagesWidth[]:=imagewidth
 
 $DisplayFunction=Identity;
@@ -44,7 +54,7 @@ JupyterReturnImageFilePNG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure
 				    "image:" <> fn 			    
 				   ]
 
-JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg;base64," <> 
+JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg+xml;base64," <> 
                                   StringReplace[ExportString[ExportString[v,"SVG", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 JupyterReturnBase64JPG[v_]:= "jpg:" <> "data:image/jpg;base64," <> 
