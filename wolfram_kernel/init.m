@@ -8,13 +8,10 @@ imagewidth = 500
 SetImagesWidth[width_]:=(imagewidth=width)
 
 
+SetImageOutputFormat::usage="Set the type of image output to format. Accepts  strings \"svg\" or \"png\" ";
 
-SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
-                                                JupyterReturnImage = JupyterReturnBase64PNG]
+ImageOutputFormat::usage="Returns the current image output format";
 
-
-ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg",
-                                                "png"]
 
 
 ImagesWidth[]:=imagewidth
@@ -25,6 +22,13 @@ $DisplayFunction=Identity;
 (*Internals: Hacks Print and Message to have the proper format*)
 
 Begin["Jupyter`Private`"];
+
+
+SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
+                                                JupyterReturnImage = JupyterReturnBase64PNG]
+
+
+ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg","png"]
 
 
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;]
