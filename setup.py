@@ -122,18 +122,17 @@ class install_with_kernelspec(install):
                     kernel_name=kernel_json['name'],
                         user=not user)
 
-                
-        print("Installing kernel spec")        
+
+        print("Installing kernel spec")
         #Build and Install the kernelspec
         install_kernelspec(self)
         log.info("Installing nbextension")
-        from notebook.nbextensions import install_nbextension        
+        from notebook.nbextensions import install_nbextension
         try:
             install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
         except:
             log.info("nbextension can not be installed")
-        
-        
+
 
 setup(name='wolfram_kernel',
       version='0.11.3',

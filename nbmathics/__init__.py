@@ -10,7 +10,7 @@ def _jupyter_nbextension_paths():
         section = "notebook",
         src = "static",
         dest = "nbmathics",
-        require = "nbmathics/main"
+        require = "nbmathics/static/main"
     )]
 
 def _jupyter_bundlerextension_paths():

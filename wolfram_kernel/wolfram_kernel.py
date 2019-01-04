@@ -137,19 +137,35 @@ class WolframKernel(ProcessMetaKernel):
         #self.log.warning("                                ... done")
         return replwrapper
 
+    # Deprecated ?
     def check_js_libraries_loaded(self):
         if self.js_libraries_loaded:
             return
         jscode = """
-           if(document.getElementById("graphics3dScript") == null){
+           //if(document.getElementById("graphics3dScript") == null){
+	     if(false){
                var tagg = document.createElement('script');
                tagg.type = "text/javascript";
-               tagg.src = "/static/js/graphics3d.js";
+               tagg.src = "/nbextensions/nbmathics/static/js/three/Three.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript2"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               /*****************************/
+	       var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/three/Detector.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript2"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               /*****************************/
+               var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/graphics3d.js";
                tagg.charset = 'utf-8';
                tagg.id = "graphics3dScript"
                document.getElementsByTagName("head")[0].appendChild( tagg );
-               alert("library 3d loaded");
-          }else{alert("library 3d was loaded before");}
+               alert("library 3d loaded from wolfram kernel");
+          }else{alert("library 3d was loaded before from wolfram kernel");}
         """
         self.Display(Javascript(jscode))
         self.js_libraries_loaded = True
@@ -544,6 +560,20 @@ class WolframKernel(ProcessMetaKernel):
                     standardout = outputtext[(p + lentex + 2):]
                     return latexout
 
+        if(outputtext[:3] == '3d:'):
+            for p in range(len(outputtext) - 31):
+                pp = p + 31
+                if outputtext[pp] == ':':
+                    self.Display(HTML("<graphics3d id=\"3DOutput\" data='" +  outputtext[31:pp]  +  "'/>"))
+                    self.Display(Javascript("""
+                    var last3d = document.getElementById('3DOutput');                
+                    var jsondata = atob(last3d.getAttribute("data"));
+                    jsondata = JSON.parse(jsondata);
+                    drawGraphics3D(last3d.parentNode,jsondata);
+                    """))
+                    return "    " + outputtext[(pp + 1):]
+
+                
         if(outputtext[:4] == 'svg:'):
             for p in range(len(outputtext) - 4):
                 pp = p + 4

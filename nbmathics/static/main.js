@@ -83,7 +83,36 @@ define(
 	    Jupyter.toolbar.add_buttons_group([full_action_nameCtrlEsc]);
 	    console.info('nbmathics: adding keybinding');
 	    Jupyter.keyboard_manager.edit_shortcuts.add_shortcut('Ctrl-Esc','nbmathics:open-close-symbol');
+
+	    if(document.getElementById("graphics3dScript2") == null){
+	       var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/three/Three.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript2"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               /*****************************/
+	       var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/three/Detector.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript2"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               /*****************************/
+               var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/graphics3d.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               alert("library 3d loaded from main.js");
+            } else{
+               alert("library 3d was loaded before in main.js");
+            }
+
 	    console.info('this is my nbextension... done');
+
+
 	};
 	return {load_ipython_extension: _load_ipython_extension};
     }
