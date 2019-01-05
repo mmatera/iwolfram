@@ -105,9 +105,9 @@ define(
                tagg.charset = 'utf-8';
                tagg.id = "graphics3dScript"
                document.getElementsByTagName("head")[0].appendChild( tagg );
-               alert("library 3d loaded from main.js");
+   	       console.info('   graphics3dScript loaded.');
             } else{
-               alert("library 3d was loaded before in main.js");
+	       console.info('  graphics3dScript already loaded.');
             }
 
 	    console.info('this is my nbextension... done');
