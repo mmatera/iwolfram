@@ -127,13 +127,13 @@ class install_with_kernelspec(install):
         #Build and Install the kernelspec
         install_kernelspec(self)
         log.info("Installing nbextension")
-        from notebook.nbextensions import install_nbextension
-        from notebook.services.config import ConfigManager
+        from notebook.nbextensions import install_nbextension 
+        import os.path
         try:
             install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
-            cm = ConfigManager()
-            cm.update('notebook', {"load_extensions": {"nbmathics/static/main": True}})
-
+            jup_nbex_exec = os.path.dirname(sys.executable) + "/" + "jupyter-nbextension"
+            os.system(jup_nbex_exec + " install --system  nbmathics")
+            os.system(jup_nbex_exec + "  enable --system --py  nbmathics")
         except:
             log.info("nbextension can not be installed")
 
