@@ -34,7 +34,7 @@ ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg","png"
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;]
 
 
-JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"Out["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]
+JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]
 
 JupyterReturnValue[Null]:="null:"
 

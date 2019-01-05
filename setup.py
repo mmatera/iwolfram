@@ -128,8 +128,12 @@ class install_with_kernelspec(install):
         install_kernelspec(self)
         log.info("Installing nbextension")
         from notebook.nbextensions import install_nbextension
+        from notebook.services.config import ConfigManager
         try:
             install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
+            cm = ConfigManager()
+            cm.update('notebook', {"load_extensions": {"nbmathics/static/main": True}})
+
         except:
             log.info("nbextension can not be installed")
 
