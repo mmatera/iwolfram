@@ -44,7 +44,7 @@ JupyterReturnValue[Null]:="null:"
 *)
 JupyterReturnImageFileSVG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".svg"},
 				    Export[fn, v, "SVG",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn 			    
+				    "image:" <> fn
 				   ]
 
 
@@ -69,6 +69,8 @@ JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <>
 
 
 JupyterReturnValue[v_Graphics]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -"
+
+JupyterReturnValue[v_Legended]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -"
 
 JupyterReturnValue[v_Graphics3D]:= JupyterReturnImage[v]  <>  ":" <> "- graphics3D -"
 
