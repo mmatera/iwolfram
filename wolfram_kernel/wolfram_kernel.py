@@ -40,6 +40,7 @@ class MMASyntaxError(BaseException):
         self.kernel_type = None
 
 
+
 class WolframKernel(ProcessMetaKernel):
     implementation = 'Wolfram Mathematica Kernel'
     implementation_version = __version__,
@@ -54,7 +55,7 @@ class WolframKernel(ProcessMetaKernel):
         'help_links': MetaKernel.help_links,
         'version': '0.0.0',
     }
-
+    
     kernel_json = {
         'argv': [sys.executable, '-m', 'wolfram_kernel',
                  '-f', '{connection_file}'],
@@ -96,7 +97,8 @@ class WolframKernel(ProcessMetaKernel):
 
     def __init__(self, *args, **kwargs):
         super(WolframKernel, self).__init__(*args, **kwargs)
-
+        self.buffer2 = ""
+        
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
         # self.log.warning("help required")
         if none_on_fail:
@@ -109,6 +111,56 @@ class WolframKernel(ProcessMetaKernel):
                            {'wait': True, 'name': "stderr", 'text': warning})
         return
 
+    def stream_handler(self,strm):
+        self.buffer2 = self.buffer2 + strm + "\n"
+        offset = 0
+        while len(self.buffer2)>offset and self.buffer2[offset] in ("\n"," "):
+            offset = offset + 1
+            if len(self.buffer2) == offset:
+                return
+        idx = 2 + offset
+        if self.buffer2[offset:idx]=="P:":
+            while self.buffer2[idx]!=":":
+                idx = idx + 1
+            lenmsg = self.buffer2[(offset+2):idx]
+            idx = idx + 1
+            endpos = idx + int(lenmsg) 
+            if len(self.buffer2) < endpos:
+                return
+            else:
+               msg = self.buffer2[idx:endpos]
+               self.buffer2 = self.buffer2[endpos:]
+               print(msg)
+        elif self.buffer2[offset:idx]=="M:":
+            while self.buffer2[idx]!=":":
+                idx = idx + 1
+            lenmsg = self.buffer2[(offset+2):idx]
+            idx = idx + 1
+            endpos = idx + int(lenmsg) 
+            if len(self.buffer2) < endpos:
+                return
+            else:
+               msg = self.buffer2[idx:endpos]
+               self.buffer2 = self.buffer2[endpos:]
+               self.show_warning(msg)
+               if msg[0:8] == "Syntax::":
+                   for p in range(len(lastmessage)):
+                       if lastmessage[p] == ":":
+                           break
+                   raise MMASyntaxError(msg[0:p], -1,
+                                                     msg[p+1:])
+               elif msg[0:11] == "Power::infy":
+                   raise MMASyntaxError(msg[0:11],
+                                                     msg[13:])
+               elif msg[0:18] == "OpenWrite::noopen":
+                   raise MMASyntaxError(msg[0:18],
+                                                     msg[20:])
+        return
+        
+            
+        
+
+    
     def print(self, msg):
         self.send_response(self.iopub_socket, 'stream',
                            {'wait': True, 'name': "stdout", 'text': msg})
@@ -189,13 +241,15 @@ class WolframKernel(ProcessMetaKernel):
         interrupted = False
         output = ''
         try:
+            self.buffer2 = ""
             output = self.wrapper.run_command(code.rstrip(), timeout=-1,
                                               stream_handler=stream_handler)
-# TODO:  instead of proccess_response, it would be better
-# to capture the prints and warnings at the moment they are sended.
+
+            if (stream_handler is not None):
+                output = self.buffer2 + output
+                self.buffer2 = ""
             output = self.process_response(output)
-            if stream_handler is not None:
-                output = ''
+            self.buffer = ""
 
         except MMASyntaxError as e:
             self.kernel_resp = {
@@ -295,7 +349,7 @@ class WolframKernel(ProcessMetaKernel):
         """
         If code is a single line, execute it and postprocess it.
         For a multiline code, it splits it and call for each line
-        do_execute_direct_single_line(). For all except the last
+        do_execute_direct_single_command(). For all except the last
         codeline, it calls to MetaKernel.post_execute() to send the
         output to the Kernel. For the last codeline, it leaves this
         task to Metakernel.
@@ -337,7 +391,7 @@ class WolframKernel(ProcessMetaKernel):
                 # loop of MetaKernel
                 if resp is not None:
                     self.post_execute(resp, prevcmd, False)
-                resp = self.do_execute_direct_single_command(lastline)
+                resp = self.do_execute_direct_single_command(lastline,stream_handler=self.stream_handler)
                 resp = self.postprocess_response(resp.output)
                 prevcmd = lastline
                 lastline = ""
@@ -376,7 +430,7 @@ class WolframKernel(ProcessMetaKernel):
         if self.kernel_type == "mathics":
             lastline = "$PrePrint[" + lastline + "]"
 
-        resp = self.do_execute_direct_single_command(lastline)
+        resp = self.do_execute_direct_single_command(lastline,stream_handler=self.stream_handler)
         return self.postprocess_response(resp.output)
 
     def process_response(self, resp):
@@ -424,7 +478,7 @@ class WolframKernel(ProcessMetaKernel):
                                 raise MMASyntaxError(lastmessage[0:18],
                                                      lastmessage[20:])
                         elif messagetype == "P":
-                            self.print(lastmessage)
+                            print(lastmessage)
                         messagefound = False
                         messagelength = 0
                         messagetype = ""
@@ -453,9 +507,9 @@ class WolframKernel(ProcessMetaKernel):
                     else:  # For some reason, Information do not pass
                             # through Print or  $PrePrint
                         if liner != "":
-                            self.print(liner)
+                            print(liner)
                 else:  # Shouldn't happen
-                    self.print("extra line? " + liner)
+                    print("extra line? " + liner)
         elif self.kernel_type == "mathics":
             for linnum, liner in enumerate(lineresponse):
                 if linnum == 0:
@@ -482,7 +536,7 @@ class WolframKernel(ProcessMetaKernel):
                                 raise MMASyntaxError(lastmessage[0:11],
                                                      lastmessage[13:])
                         elif messagetype == "P":
-                            self.print(lastmessage)
+                            print(lastmessage)
                         messagefound = False
                         messagelength = 0
                         messagetype = ""
@@ -510,9 +564,9 @@ class WolframKernel(ProcessMetaKernel):
                         lastmessage = lastmessage + liner[k:]
                     else:  # For some reason, Information do not pass
                             # through Print or  $PrePrint
-                        self.print(liner)
+                        print(liner)
                 else:  # Shouldn't happen
-                    self.print("extra line? " + liner)
+                    print("extra line? " + liner)
         else:
             raise ValueError
 
@@ -564,10 +618,11 @@ class WolframKernel(ProcessMetaKernel):
             for p in range(len(outputtext) - 31):
                 pp = p + 31
                 if outputtext[pp] == ':':
-                    self.Display(HTML("<graphics3d id=\"3DOutput\" data='" +  outputtext[31:pp]  +  "'/>"))
+                    self.Display(HTML("<graphics3d onload='alert(\"!!!\");' id=\"3DOutput\" data='" +  outputtext[31:pp]  +  "'/>"))
                     self.Display(Javascript("""
                     var last3d = document.getElementById('3DOutput');                
                     var jsondata = atob(last3d.getAttribute("data"));
+                    console.info("jsondata= " + jsondata);
                     jsondata = JSON.parse(jsondata);
                     drawGraphics3D(last3d.parentNode,jsondata);
                     """))

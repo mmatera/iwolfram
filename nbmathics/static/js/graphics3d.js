@@ -584,7 +584,7 @@ function drawGraphics3D(container, data) {
 
   // Plot the primatives
   for (var indx = 0; indx < data.elements.length; indx++) {
-    var type = data.elements[indx].type;
+      var type = data.elements[indx].type;
     switch(type) {
       case "point":
         scene.add(drawPoint(data.elements[indx]));
@@ -602,7 +602,7 @@ function drawGraphics3D(container, data) {
         scene.add(drawCube(data.elements[indx]));
         break;
       default:
-        alert("Error: Unknown type passed to drawGraphics3D");
+        alert("Error: Unknown type <<" + type + ">> passed to drawGraphics3D");
     }
   }
 
