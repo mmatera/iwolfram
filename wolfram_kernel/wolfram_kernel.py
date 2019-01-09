@@ -41,6 +41,37 @@ class MMASyntaxError(BaseException):
 
 
 
+checkjsgraph ="""
+if (typeof(drawGraphics3D) == "undefined"){
+if(document.getElementById("graphics3dScript2") == null){
+	       var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/three/Three.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript2"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               /*****************************/
+	       var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/three/Detector.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript2"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               /*****************************/
+               var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/graphics3d.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+   	       console.info('   graphics3dScript loaded.');
+            } else{
+	       console.info('  graphics3dScript already loaded.');
+            }
+}
+ """
+
+        
 class WolframKernel(ProcessMetaKernel):
     implementation = 'Wolfram Mathematica Kernel'
     implementation_version = __version__,
@@ -96,7 +127,7 @@ class WolframKernel(ProcessMetaKernel):
         return self.kernel_type
 
     def __init__(self, *args, **kwargs):
-        super(WolframKernel, self).__init__(*args, **kwargs)
+        super(WolframKernel, self).__init__(*args, **kwargs)        
         self.buffer2 = ""
         
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
@@ -112,6 +143,15 @@ class WolframKernel(ProcessMetaKernel):
         return
 
     def stream_handler(self,strm):
+        self.log.warning("buffer2: <"+ self.buffer2 + ">")
+        if len(self.buffer2) == 0:
+           if len(strm.strip()) == 0:
+               return
+           else:
+               if strm[0]!='M' and strm[0]!='P':
+                   print(self.buffer2)
+                   return
+        self.log.warning("  adding <"+strm+"> to the buffer...")
         self.buffer2 = self.buffer2 + strm + "\n"
         offset = 0
         while len(self.buffer2)>offset and self.buffer2[offset] in ("\n"," "):
@@ -124,19 +164,20 @@ class WolframKernel(ProcessMetaKernel):
                 idx = idx + 1
             lenmsg = self.buffer2[(offset+2):idx]
             idx = idx + 1
-            endpos = idx + int(lenmsg) 
+            endpos = idx + int(lenmsg) + 1
             if len(self.buffer2) < endpos:
                 return
             else:
                msg = self.buffer2[idx:endpos]
                self.buffer2 = self.buffer2[endpos:]
+               self.log.warning("  stram_send_mesg: <"+  msg + ">")
                print(msg)
         elif self.buffer2[offset:idx]=="M:":
             while self.buffer2[idx]!=":":
                 idx = idx + 1
             lenmsg = self.buffer2[(offset+2):idx]
             idx = idx + 1
-            endpos = idx + int(lenmsg) 
+            endpos = idx + int(lenmsg) + 1
             if len(self.buffer2) < endpos:
                 return
             else:
@@ -154,7 +195,7 @@ class WolframKernel(ProcessMetaKernel):
                                                      msg[13:])
                elif msg[0:18] == "OpenWrite::noopen":
                    raise MMASyntaxError(msg[0:18],
-                                                     msg[20:])
+                                                     msg[20:])        
         return
         
             
@@ -184,6 +225,8 @@ class WolframKernel(ProcessMetaKernel):
             cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
         # self.log.warning("Building the process wrapper...")
         myspawner = spawnu(cmdline, errors="ignore", echo=False)
+        #myspawner.crlf = os.linesep.encode ("ascii")
+        #self.log.warning("Hola! crlf=<" + str(len(myspawner.crlf))+ ">")
         replwrapper = REPLWrapper(myspawner, orig_prompt, change_prompt,
                                   prompt_emit_cmd=None, echo=False)
         #self.log.warning("                                ... done")
@@ -193,33 +236,6 @@ class WolframKernel(ProcessMetaKernel):
     def check_js_libraries_loaded(self):
         if self.js_libraries_loaded:
             return
-        jscode = """
-           //if(document.getElementById("graphics3dScript") == null){
-	     if(false){
-               var tagg = document.createElement('script');
-               tagg.type = "text/javascript";
-               tagg.src = "/nbextensions/nbmathics/static/js/three/Three.js";
-               tagg.charset = 'utf-8';
-               tagg.id = "graphics3dScript2"
-               document.getElementsByTagName("head")[0].appendChild( tagg );
-               /*****************************/
-	       var tagg = document.createElement('script');
-               tagg.type = "text/javascript";
-               tagg.src = "/nbextensions/nbmathics/static/js/three/Detector.js";
-               tagg.charset = 'utf-8';
-               tagg.id = "graphics3dScript2"
-               document.getElementsByTagName("head")[0].appendChild( tagg );
-               /*****************************/
-               var tagg = document.createElement('script');
-               tagg.type = "text/javascript";
-               tagg.src = "/nbextensions/nbmathics/static/js/graphics3d.js";
-               tagg.charset = 'utf-8';
-               tagg.id = "graphics3dScript"
-               document.getElementsByTagName("head")[0].appendChild( tagg );
-               alert("library 3d loaded from wolfram kernel");
-          }else{alert("library 3d was loaded before from wolfram kernel");}
-        """
-        self.Display(Javascript(jscode))
         self.js_libraries_loaded = True
 
     def do_execute_direct_single_command(self, code, stream_handler=None):
@@ -618,14 +634,20 @@ class WolframKernel(ProcessMetaKernel):
             for p in range(len(outputtext) - 31):
                 pp = p + 31
                 if outputtext[pp] == ':':
-                    self.Display(HTML("<graphics3d onload='alert(\"!!!\");' id=\"3DOutput\" data='" +  outputtext[31:pp]  +  "'/>"))
-                    self.Display(Javascript("""
-                    var last3d = document.getElementById('3DOutput');                
-                    var jsondata = atob(last3d.getAttribute("data"));
-                    console.info("jsondata= " + jsondata);
+                    grstr= """ "<div class=\\"output_area\\"><div class=\\"run_this_cell\\" ></div> <div class=\\"prompt\\" ></div> <div  class=\\"output_subarea output_text output_result\\"><graphics3d  data='"""
+                    grstr = grstr +  outputtext[31:pp]
+                    grstr = grstr +  "'/></div></div>" + "\";"
+                    jscommands = """
+                        var last3d=$(this)[0].element[0];                     
+                        last3d.innerHTML=last3d.innerHTML+""" + grstr 
+                    
+                    jscommands = jscommands + """ 
+                    last3d = last3d.lastChild.lastChild;                   
+                    var jsondata = atob(last3d.lastChild.getAttribute("data"));
                     jsondata = JSON.parse(jsondata);
-                    drawGraphics3D(last3d.parentNode,jsondata);
-                    """))
+                    drawGraphics3D(last3d, jsondata);
+                    """
+                    self.Display(Javascript(jscommands))
                     return "    " + outputtext[(pp + 1):]
 
                 

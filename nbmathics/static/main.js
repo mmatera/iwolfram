@@ -3,6 +3,7 @@ define(
     function() {
 	function _load_ipython_extension(){
 	    console.info("init nbmathics");
+            if(Jupyter.notebook.kernel.name!="wolfram_kernel"){console.info("Current kernel is not a wolfram_kernel");return;}
 
 	    var escLitToUTFSymbol = {};
 	    escLitToUTFSymbol["ii"] = "";

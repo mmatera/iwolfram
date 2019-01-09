@@ -147,6 +147,7 @@ WMGraphics3DToJSON[g_FaceForm]:= If[Length[g]>0, Do[Switch[dir[[0]],
 
 
 
+MathicsGraphics3DToJSON[g_Graphics3D]:=ExportString[StringReplace[StringDrop[StringDrop[ToString[MathMLForm[g]],42],-32],"&quot;"->"\""],"Base64"]
 
 WMGraphics3DToJSON[g_Graphics3D]:= Module[{viewpoint, args, mmaelems,elem, mmaoptions,
 					elems, threeelems,options,axes,ticks,range,extent,lighting},
