@@ -143,15 +143,13 @@ class WolframKernel(ProcessMetaKernel):
         return
 
     def stream_handler(self,strm):
-        self.log.warning("buffer2: <"+ self.buffer2 + ">")
         if len(self.buffer2) == 0:
-           if len(strm.strip()) == 0:
+            if len(strm.strip()) == 0:
                return
-           else:
-               if strm[0]!='M' and strm[0]!='P':
-                   print(self.buffer2)
+            else:
+               if strm[0]!='M' and strm[0]!='P' and not(len(strm)>=4 and strm.strip()[:4]=="Out["):
+                   print(strm)
                    return
-        self.log.warning("  adding <"+strm+"> to the buffer...")
         self.buffer2 = self.buffer2 + strm + "\n"
         offset = 0
         while len(self.buffer2)>offset and self.buffer2[offset] in ("\n"," "):
@@ -170,7 +168,6 @@ class WolframKernel(ProcessMetaKernel):
             else:
                msg = self.buffer2[idx:endpos]
                self.buffer2 = self.buffer2[endpos:]
-               self.log.warning("  stram_send_mesg: <"+  msg + ">")
                print(msg)
         elif self.buffer2[offset:idx]=="M:":
             while self.buffer2[idx]!=":":
@@ -468,12 +465,10 @@ class WolframKernel(ProcessMetaKernel):
         sangria = 0
         if self.kernel_type in ["wolfram", "expreduce"]:
             for linnum, liner in enumerate(lineresponse):
-                if linnum == 0:
-                    continue
                 if outputfound:
                     if liner.strip() == "":
                         continue
-                    if liner[:4] == "Out[":
+                    if liner.strip()[:4] == "Out[":
                         break
                     outputtext = outputtext + liner
                 elif messagefound:
