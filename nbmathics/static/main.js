@@ -3,8 +3,9 @@ define(
     function() {
 	function _load_ipython_extension(){
 	    console.info("init nbmathics");
-            if(Jupyter.notebook.kernel.name!="wolfram_kernel"){console.info("Current kernel is not a wolfram_kernel");return;}
-
+	    
+            /*if(Jupyter.notebook.kernel.name!="wolfram_kernel"){console.info("Current kernel is not a wolfram_kernel");return;}*/
+	    /*
 	    var escLitToUTFSymbol = {};
 	    escLitToUTFSymbol["ii"] = "";
 	    escLitToUTFSymbol["jj"] = "";
@@ -37,6 +38,8 @@ define(
 	    escLitToUTFSymbol["]]"]  = "〛";
 	    escLitToUTFSymbol["<"] = "〈";
 	    escLitToUTFSymbol[">"]  = "〉";
+	    escLitToUTFSymbol["<|"] = "";
+	    escLitToUTFSymbol["|>"] = "";
 	    escLitToUTFSymbol["<="] = "≤";
 	    escLitToUTFSymbol[">="]  = "≥";
 	    escLitToUTFSymbol["dg"]  = "†";
@@ -92,14 +95,14 @@ define(
                tagg.charset = 'utf-8';
                tagg.id = "graphics3dScript2"
                document.getElementsByTagName("head")[0].appendChild( tagg );
-               /*****************************/
+               /***************************** /
 	       var tagg = document.createElement('script');
                tagg.type = "text/javascript";
                tagg.src = "/nbextensions/nbmathics/static/js/three/Detector.js";
                tagg.charset = 'utf-8';
                tagg.id = "graphics3dScript2"
                document.getElementsByTagName("head")[0].appendChild( tagg );
-               /*****************************/
+               /***************************** /
                var tagg = document.createElement('script');
                tagg.type = "text/javascript";
                tagg.src = "/nbextensions/nbmathics/static/js/graphics3d.js";
@@ -113,7 +116,7 @@ define(
 
 	    console.info('this is my nbextension... done');
 
-
+*/
 	};
 	return {load_ipython_extension: _load_ipython_extension};
     }

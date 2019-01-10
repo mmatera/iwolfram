@@ -12,6 +12,9 @@ import json
 import os
 import sys
 
+
+
+
 try:
     from jupyter_client.kernelspec import install_kernel_spec
 except ImportError:
@@ -105,10 +108,13 @@ class install_with_kernelspec(install):
             from jupyter_client.kernelspec import KernelSpecManager
             from wolfram_kernel.wolfram_kernel import WolframKernel
             kernel_json = WolframKernel.kernel_json
-        
+            kernel_js = WolframKernel.kernel_js
             kernel_spec_manager = KernelSpecManager()
             log.info('Writing kernel spec')
             kernel_spec_path = write_kernel_spec(overrides=kernel_json)
+            with open(kernel_spec_path+"/kernel.js","w") as jsfile:
+                 jsfile.write(kernel_js)
+
             log.info('Installing kernel spec')
             try:
                 kernel_spec_manager.install_kernel_spec(

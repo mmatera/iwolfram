@@ -95,6 +95,123 @@ class WolframKernel(ProcessMetaKernel):
         'name': 'wolfram_kernel',
     }
 
+    kernel_js ="""
+    define(function(){return {onload: function(){
+    console.info('wolfram kernel stub loaded');
+    if(Jupyter.notebook.kernel.name!="wolfram_kernel"){
+        console.info("  Current kernel is not a wolfram_kernel");return;}
+    /*Handle Ctrl-Esc symbols */
+	    var escLitToUTFSymbol = {};
+	    escLitToUTFSymbol["ii"] = "";
+	    escLitToUTFSymbol["jj"] = "";
+	    escLitToUTFSymbol["cross"] = "";
+	    escLitToUTFSymbol["*"] = "×";
+	    escLitToUTFSymbol["c+"] = "⊕";
+	    escLitToUTFSymbol["c*"] = "⊗";
+	    escLitToUTFSymbol["&&"] = "∧";
+	    escLitToUTFSymbol["||"] = "∨";
+	    escLitToUTFSymbol["!"]  = "¬";	    
+	    escLitToUTFSymbol["pd"] = "∂";
+	    escLitToUTFSymbol["del"] = "∇";
+	    escLitToUTFSymbol["sum"] = "∑";
+	    escLitToUTFSymbol["prod"] = "∏";
+	    escLitToUTFSymbol["int"] = "∫";
+	    escLitToUTFSymbol["dd"] = "";
+	    escLitToUTFSymbol["DD"] = "";
+	    escLitToUTFSymbol["prop"] = "∝";
+	    escLitToUTFSymbol["inf"] = "∞";
+	    escLitToUTFSymbol["elem"] = "∈";
+	    escLitToUTFSymbol["sub"] = "⊂";
+	    escLitToUTFSymbol["sup"] = "⊃";
+	    escLitToUTFSymbol["un"] = "⋃";
+	    escLitToUTFSymbol["inter"] = "⋂";
+	    escLitToUTFSymbol["."]  = "·";
+	    escLitToUTFSymbol["->"] = "→";
+	    escLitToUTFSymbol[":>"] = "";
+	    escLitToUTFSymbol["=>"] = "";
+	    escLitToUTFSymbol["[["] = "〚";
+	    escLitToUTFSymbol["]]"]  = "〛";
+	    escLitToUTFSymbol["<"] = "〈";
+	    escLitToUTFSymbol[">"]  = "〉";
+	    escLitToUTFSymbol["<|"] = "";
+	    escLitToUTFSymbol["|>"] = "";
+	    escLitToUTFSymbol["<="] = "≤";
+	    escLitToUTFSymbol[">="]  = "≥";
+	    escLitToUTFSymbol["dg"]  = "†";
+	    escLitToUTFSymbol["ct"]  = "";
+
+	    
+	    var handlerCtrlEsc = function(){
+		var cm = IPython.notebook.get_selected_cell().code_mirror;
+		var start = cm.getCursor("start"), end = cm.getCursor("end");
+		if (start.line == end.line && start.ch == end.ch){
+		    if (handlerCtrlEsc.status != false){
+			newchar = escLitToUTFSymbol[cm.doc.getRange(handlerCtrlEsc.status, end)];
+			if (newchar != undefined){
+			    cm.doc.replaceRange(newchar, handlerCtrlEsc.status, end);
+			}
+                        handlerCtrlEsc.status = false;
+		    }else{
+			var cm = IPython.notebook.get_selected_cell().code_mirror;
+			var start = cm.getCursor("start"), to = cm.getCursor("end");
+			handlerCtrlEsc.status = start;
+		    }
+		}else{
+		    handlerCtrlEsc.status = false
+		    newchar = escLitToUTFSymbol[cm.doc.getRange(start, end)];
+		    if (newchar != undefined){
+			cm.doc.replaceRange(newchar, start, end);
+		    }
+		} 
+		
+		return false;
+	    };
+	handlerCtrlEsc.status = false;
+	    
+	var actionCtrlEsc = {
+		icon: 'fa-comment-o',
+		help: 'Show an alert',
+		help_index: 'zz',
+		handler: handlerCtrlEsc
+	};
+	var prefix = 'nbmathics';
+	var action_nameCtrlEsc = 'open-close-symbol';
+	console.info('kernel.js wolfram: Registering action');
+	var full_action_nameCtrlEsc = Jupyter.actions.register(actionCtrlEsc, action_nameCtrlEsc, prefix);
+	console.info('kernel.js: adding button to the toolbar');
+	    Jupyter.toolbar.add_buttons_group([full_action_nameCtrlEsc]);
+	    console.info('kernel.js: adding keybinding');
+	    Jupyter.keyboard_manager.edit_shortcuts.add_shortcut('Ctrl-Esc','nbmathics:open-close-symbol');
+
+	if(document.getElementById("graphics3dScript2") == null){
+	       var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/three/Three.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript2"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               /*****************************/
+	       var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/three/Detector.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript2"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+               /*****************************/
+               var tagg = document.createElement('script');
+               tagg.type = "text/javascript";
+               tagg.src = "/nbextensions/nbmathics/static/js/graphics3d.js";
+               tagg.charset = 'utf-8';
+               tagg.id = "graphics3dScript"
+               document.getElementsByTagName("head")[0].appendChild( tagg );
+   	       console.info('   graphics3dScript loaded.');
+            } else{
+	       console.info('  graphics3dScript already loaded.');
+            }
+    }}});
+    """
+
+    
     def get_usage(self):
         return "This is the Wolfram Mathematica kernel."
 
@@ -182,8 +299,8 @@ class WolframKernel(ProcessMetaKernel):
                self.buffer2 = self.buffer2[endpos:]
                self.show_warning(msg)
                if msg[0:8] == "Syntax::":
-                   for p in range(len(lastmessage)):
-                       if lastmessage[p] == ":":
+                   for p in range(len(msg)):
+                       if msg[p] == ":":
                            break
                    raise MMASyntaxError(msg[0:p], -1,
                                                      msg[p+1:])
@@ -331,7 +448,7 @@ class WolframKernel(ProcessMetaKernel):
                 string_open = True
                 bracketstring = bracketstring + '"'
                 continue
-            if c in ['(', '[', '{']:
+            if c in ['(', '[', '{','']:
                 bracketstring = bracketstring + c
             if c == ')':
                 if bracketstring == "":
@@ -351,6 +468,13 @@ class WolframKernel(ProcessMetaKernel):
                 if bracketstring == "":
                     raise MMASyntaxError("Syntax::sntxf", -1, codeline)
                 if bracketstring[-1] == '{':
+                    bracketstring = bracketstring[:-1]
+                else:
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+            if c == '':
+                if bracketstring == "":
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+                if bracketstring[-1] == '':
                     bracketstring = bracketstring[:-1]
                 else:
                     raise MMASyntaxError("Syntax::sntxf", -1, codeline)
@@ -420,7 +544,7 @@ class WolframKernel(ProcessMetaKernel):
 
         # If the last line is complete:
         if bracketstring != "":
-            if bracketstring[-1] in ['(', '[', '{']:
+            if bracketstring[-1] in ['(', '[', '{','']:
                 errname = "Syntax::bktmcp"
                 self.show_warning("Syntax::bktmcp: Expression has no closing" +
                                   bracketstring[-1])
@@ -633,6 +757,7 @@ class WolframKernel(ProcessMetaKernel):
                     grstr = grstr +  outputtext[31:pp]
                     grstr = grstr +  "'/></div></div>" + "\";"
                     jscommands = """
+                        requirejs(["nbextensions/nbmathics/static/main"],function(main){require('main');
                         var last3d=$(this)[0].element[0];                     
                         last3d.innerHTML=last3d.innerHTML+""" + grstr 
                     
@@ -640,7 +765,7 @@ class WolframKernel(ProcessMetaKernel):
                     last3d = last3d.lastChild.lastChild;                   
                     var jsondata = atob(last3d.lastChild.getAttribute("data"));
                     jsondata = JSON.parse(jsondata);
-                    drawGraphics3D(last3d, jsondata);
+                    drawGraphics3D(last3d, jsondata);});
                     """
                     self.Display(Javascript(jscommands))
                     return "    " + outputtext[(pp + 1):]
