@@ -38,6 +38,10 @@ JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]
 
 JupyterReturnValue[Null]:="null:"
 
+
+JupyterReturnValue[v_Association]:= "string:"<> ExportString[InputForm@v, "Base64"];
+
+
 (*JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
 						  ToString[InputForm[v]], "BASE64"])
