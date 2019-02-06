@@ -1,4 +1,3 @@
-
 (* ::Package:: *)
 BeginPackage["Jupyter`"];
 (* Process the output *)
@@ -14,7 +13,7 @@ ImageOutputFormat::usage="Returns the current image output format";
 
 
 
-ImageWidth[]:=imagewidth
+ImagesWidth[]:=imagewidth
 
 $DisplayFunction=Identity;
 
@@ -34,13 +33,9 @@ ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg","png"
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;]
 
 
-JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]
+JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"Out["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]
 
 JupyterReturnValue[Null]:="null:"
-
-
-JupyterReturnValue[v_Association]:= "string:"<> ExportString[InputForm@v, "Base64"];
-
 
 (*JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
@@ -48,7 +43,7 @@ JupyterReturnValue[v_Association]:= "string:"<> ExportString[InputForm@v, "Base6
 *)
 JupyterReturnImageFileSVG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".svg"},
 				    Export[fn, v, "SVG",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn
+				    "image:" <> fn 			    
 				   ]
 
 
@@ -72,149 +67,10 @@ JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <>
                                   StringReplace[ExportString[ExportString[v,"png", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 
-WMGraphics3DToJSON[g_Sphere]:= Module[{coords,rad},
-				Switch[Length[g],
-                                      0, coords={{0,0,0}};rad=1.,
-				      1, coords=g[[1]];rad=1.,
-				      2, coords=g[[1]];rad=g[[2]]
-				      ];
-			       	 If[Length[coords[[1]]]!=3,coords={coords}];
-			         coords = Table[{c,Null},{c,coords}];
-				 Return["{\"type\": \"sphere\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
-				          ", \"radius\": "<> ExportString[rad,"RawJSON","Compact"->True]   <>
-					  ", \"faceColor\": "<>facecolor<>"}"]];
-
-WMGraphics3DToJSON[g_Point]:= Module[{coords,json},
-				Switch[Length[g],
-                                      0, coords={{0,0,0}},
-				      1, coords=g[[1]]
-				      ];
-			       	 If[Length[coords[[1]]]!=3,coords={coords}];
-			         coords = Table[{c,Null},{c,coords}];
-				 json="{\"type\": \"point\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
-				          ", \"color\": "<>facecolor<>"}";
-					  Print[json];
-				 Return[json]];
-
-
-WMGraphics3DToJSON[g_Line]:= Module[{coords,json},
-				Switch[Length[g],
-                                      0, coords={{0,0,0}},
-				      1, coords=g[[1]]
-				      ];
-			       	 If[Length[coords[[1]]]!=3,coords={coords}];
-			         coords = Table[{c,Null},{c,coords}];
-				 json="{\"type\": \"line\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
-				          ", \"color\": "<>edgecolor<>"}";
-					  Print[json];
-				 Return[json]];
-
-WMGraphics3DToJSON[g_Polygon]:= Module[{coords,json},
-				Switch[Length[g],
-                                      0, coords={{0,0,0}},
-				      1, coords=g[[1]]
-				      ];
-			       	 If[Length[coords[[1]]]!=3,coords={coords}];
-			         coords = Table[{c,Null},{c,coords}];
-				 json="{\"type\": \"polygon\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
-				          ", \"faceColor\": "<>facecolor<>"}";
-					  Print[json];
-				 Return[json]];
-
-WMGraphics3DToJSON[g_Cuboid]:= Module[{coords,size,json},
-				Switch[Length[g],
-                                      0, coords={0,0,0};size={1,1,1},
-				      1, coords={0,0,0};size=g[[1]],
-				      2, coords=g[[1]];size=g[[2]]-g[[1]]
-				      ];
-			         coords = {{coords,Null}};
-				 size = {{size,Null}};
-				 json="{\"type\": \"cube\", \"position\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
-				        ", \"size\": "<> ExportString[size,"RawJSON","Compact"->True] <>		  
-				        ", \"faceColor\": "<>facecolor<>"}";
-					  Print[json];
-				 Return[json]];
-
-
-WMGraphics3DToJSON[g_RGBColor]:= (facecolor=ExportString[List@@g//If[Length[#1]==3,Append[#1,1],#1]&,"RawJSON","Compact"->True]);
-
-WMGraphics3DToJSON[g_EdgeForm]:= If[Length[g]>0, Do[Switch[dir[[0]],
-                                    RGBColor,edgecolor=ExportString[List@@dir//If[Length[#1]==3,Append[#1,1],#1]&,"RawJSON","Compact"->True]
-				    ],{dir,g[[1]]//If[g[[1]][[0]]===List,g[[1]],{g[[1]]}]}]]
-
-WMGraphics3DToJSON[g_FaceForm]:= If[Length[g]>0, Do[Switch[dir[[0]],
-                                    RGBColor,facecolor=ExportString[List@@dir//If[Length[#1]==3,Append[#1,1],#1]&,"RawJSON","Compact"->True]
-				    ],{dir,g[[1]]//If[g[[1]][[0]]===List,g[[1]],{g[[1]]}]}]];
-
-
-(facecolor=ExportString[List@@g//If[Length[#1]==3,Append[#1,1],#1]&,"RawJSON","Compact"->True]);
-
-
-
-MathicsGraphics3DToJSON[g_Graphics3D]:=ExportString[StringReplace[StringDrop[StringDrop[ToString[MathMLForm[g]],42],-32],"&quot;"->"\""],"Base64"]
-
-WMGraphics3DToJSON[g_Graphics3D]:= Module[{viewpoint, args, mmaelems,elem, mmaoptions,
-					elems, threeelems,options,axes,ticks,range,extent,lighting},
-   mmaelems = (Flatten[{Normal[g[[1]]]}]/.Annotation[args__]:>args[[1]]);
-   mmaelems = If[mmaelems[[0]]===List,mmaelems,{mmaelems}];
-   mmaelems = Flatten[mmaelems];
-   facecolor = "[1.0,1.0,1.0,1.0]";
-   edgecolor = "[0.0,0.0,0.0,1.0]";
-   thickness = 1.;
-   threeelems = {};
-   Do[If[MemberQ[{Cuboid,Sphere,Point,Line,Polygon},elem[[0]]],AppendTo[threeelems,WMGraphics3DToJSON[elem]],WMGraphics3DToJSON[elem]],{elem,mmaelems}];
-   If[Length[threeelems]==0,elems = "\"elements\":[]",
-      elems = "\"elements\": [" <> threeelems[[1]]; threeelems=Drop[threeelems,1];
-      While[Length[threeelems]!=0,elems = elems <> ", " <> threeelems[[1]]; threeelems=Drop[threeelems,1]];
-      elems = elems <>"] "];
-   Print[elems];
-   lighting = "\"lighting\": [{\"color\": [0.3, 0.2, 0.4], \"type\": \"Ambient\"}, {\"color\": [0.8, 0.0, 0.0], \"position\": [2.0, 0.0, 2.0], \"type\": \"Directional\"}, {\"color\": [0.0, 0.8, 0.0], \"position\": [2.0, 2.0, 2.0], \"type\": \"Directional\"}, {\"color\": [0.0, 0.0, 0.8], \"position\": [0.0, 2.0, 2.0], \"type\": \"Directional\"}]";
-   mmaoptions = If[Length[g]==2,g[[2]],{}];
-   viewpoint = (ViewPoint/.mmaoptions);
-   viewpoint = "\"viewpoint\": " <> If[ToString[viewpoint] == "ViewPoint", "[1.3, -2.4, 2.0]",
-                                       ExportString[viewpoint,"RawJSON","Compact"->True]]; 
-   axes = Axes/.mmaoptions;
-   axes = If[axes[[0]]===List,axes,{axes,axes,axes}];
-   axes = Table[If[ToString[a] == "True","true","false"],{a,axes}];
-   axes = "\"hasaxes\": [" <> axes[[1]]<>", " <> axes[[2]]<>", " <> axes[[3]]<>"]";
-   range = (PlotRange/.mmaoptions);
-   range = If[ToString[range]=="PlotRange",{{0,1},{0,1},{0,1}},range];
-   extent = "\"extent\": {\"xmin\":"<> 	ExportString[range[[1]][[1]],"RawJSON"]<>
-                         ", \"xmax\": "<> ExportString[range[[1]][[2]],"RawJSON"]<>
-			 ", \"ymin\": "<> ExportString[range[[2]][[1]],"RawJSON"]<>
-			 ", \"ymax\": "<> ExportString[range[[2]][[2]],"RawJSON"]<>
-			 ", \"zmin\": "<> ExportString[range[[3]][[1]],"RawJSON"]<>
-			 ", \"zmax\": "<> ExportString[range[[3]][[2]],"RawJSON"]<>"}";
-   ticks = (Ticks/.mmaoptions);
-   ticks = If[ToString[Ticks]=="Ticks",{Automatic,Automatic,Automatic},Ticks];
-   ticks = ExportString[
-		  Table[
-		  If[ToString[ticks[[r]]]=="Automatic",
-		  {Table[k, {k,range[[r]][[1]],range[[r]][[2]],(range[[r]][[2]]-range[[r]][[1]])/10}],
-                  Table[k, {k,range[[r]][[1]],range[[r]][[2]],(range[[r]][[2]]-range[[r]][[1]])/40}],
-		  Table[ToString[k], {k,range[[r]][[1]],range[[r]][[2]],(range[[r]][[2]]-range[[r]][[1]])/10}]},
-		  ticks[[r]]],{r,3}],
-		  "RawJSON","Compact"->True];
-   ticks = "\"ticks\": " <> ticks;
-   Return["{"<> viewpoint <> ", " <> extent <> ", " <> elems  <> ", \"axes\": {"<> axes <>", " <> ticks <> "}, " <> lighting <>"}"]
-];
-
-
-Graphics3DToJSON = If[Mathics, MathicsGraphics3DToJSON, WMGraphics3DToJSON];
-
-
-
-			
 JupyterReturnValue[v_Graphics]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -"
-
-JupyterReturnValue[v_Legended]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -"
 
 JupyterReturnValue[v_Graphics3D]:= JupyterReturnImage[v]  <>  ":" <> "- graphics3D -"
 
-(* Experimental Feature
-JupyterReturn3D[v_]:= "3d:" <> "data:json/graphics3d;base64," <>
-		      StringReplace[ExportString[Graphics3DToJSON[v],"Base64"] ,"\n"->""];
- *)
 
 
 JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]], 
@@ -280,8 +136,10 @@ Unprotect[Message];
 (*Redefine Print*)
  Unprotect[Print];
  Print[s_] := WriteString[OutputStream["stdout", 1],  
-"P:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"]
+"\nP:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"]
  Protect[Print];
 End[];
 EndPackage[];
 
+$Line=0;
+Dialog[];
