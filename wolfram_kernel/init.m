@@ -3,7 +3,7 @@
 BeginPackage["Jupyter`"];
 (* Process the output *)
 Jupyter`tmpdir = CreateDirectory[]
-imagewidth = 500
+imagewidth = 300
 
 SetImagesWidth[width_]:=(imagewidth=width)
 
@@ -14,7 +14,7 @@ ImageOutputFormat::usage="Returns the current image output format";
 
 
 
-ImagesWidth[]:=imagewidth
+ImageWidth[]:=imagewidth
 
 $DisplayFunction=Identity;
 
