@@ -334,9 +334,9 @@ class WolframKernel(ProcessMetaKernel):
             else:
                 msg = self.bufferout[idx:endpos]
                 self.bufferout = self.bufferout[endpos:]
-                if msg[:65] == "ToExpression::sntxi: Incomplete expression;" +
+                if msg[:65] == "ToExpression::sntxi: Incomplete expression;" + \
                 " more input is needed " or \
-                    msg[:48] == "ToExpression::sntx: Invalid syntax " +
+                    msg[:48] == "ToExpression::sntx: Invalid syntax " + \
                 "in or before ":
                     raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
                 if msg[0:8] == "Syntax::":
@@ -371,23 +371,24 @@ class WolframKernel(ProcessMetaKernel):
             self.process_response = self.process_response_wolfram
             self.open_envel = "ToExpression[\"Identity["
             self.close_envel = "]\"]"
-            cmdline = self.language_info['exec'] + " -rawterm -initfile '" +
-            self.initfilename + "'"
+            cmdline = self.language_info['exec'] + " -rawterm -initfile '" + \
+                      self.initfilename + "'"
 
         if self.kernel_type in ["expreduce"]:
             self.process_response = self.process_response_wolfram
             self.do_execute_direct = self.do_execute_direct_expred
-            self.do_execute_direct_single_command =
-            self.do_execute_direct_single_command_expred
-            cmdline = self.language_info['exec'] +
-            " -rawterm -initfile '" + self.initfilename + "'"
+            self.do_execute_direct_single_command = \
+                                self.do_execute_direct_single_command_expred
+            cmdline = self.language_info['exec'] + \
+                      " -rawterm -initfile '" + self.initfilename + "'"
 
         elif self.kernel_type in ["mathics"]:
             self.process_response = self.process_response_mathics
             self.open_envel = "$PrePrint[ToExpression[\"Identity["
             self.close_envel = "]\"]]"
-            cmdline = self.language_info['exec'] +
-            " --colors NOCOLOR --persist '" + self.initfilename + "'"
+            cmdline = self.language_info['exec'] + \
+                      " --colors NOCOLOR --persist '" + \
+                      self.initfilename + "'"
 
         self.myspawner = spawnu(cmdline, errors="ignore", echo=False)
         replwrapper = REPLWrapper(self.myspawner, orig_prompt, change_prompt,
@@ -648,7 +649,7 @@ class WolframKernel(ProcessMetaKernel):
 
         string_open = bracketstring != "" and bracketstring[-1] == '"'
 
-        if not string_open and bracketstring != "" and
+        if not string_open and bracketstring != "" and \
         bracketstring[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ',']:
             bracketstring = bracketstring[:-1]
 
@@ -689,7 +690,7 @@ class WolframKernel(ProcessMetaKernel):
                     bracketstring = bracketstring[:-1]
                 else:
                     raise MMASyntaxError("Syntax::sntxf", -1, codeline)
-        if codeline[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ','] and
+        if codeline[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ','] and \
         not string_open:
             bracketstring = bracketstring + codeline[-1]
         return bracketstring
@@ -812,10 +813,10 @@ class WolframKernel(ProcessMetaKernel):
                 if len(lastmessage) >= messagelength:
                     if messagetype == "M":
                         self.show_warning(lastmessage)
-                        if msg[:65] == "ToExpression::sntxi: Incomplete " +
-                        "expression; more input is needed " or \
-                           msg[:48] == "ToExpression::sntx: " +
-                        "Invalid syntax in or before ":
+                        if msg[:65] == "ToExpression::sntxi: Incomplete " + \
+                           "expression; more input is needed " or \
+                           msg[:48] == "ToExpression::sntx: " + \
+                           "Invalid syntax in or before ":
                             raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
                         if lastmessage[0:8] == "Syntax::":
                             for p in range(len(lastmessage)):
@@ -897,10 +898,10 @@ class WolframKernel(ProcessMetaKernel):
                 if len(lastmessage) >= messagelength:
                     if messagetype == "M":
                         self.show_warning(lastmessage)
-                        if msg[:65] == "ToExpression::sntxi: Incomplete " +
-                        "expression; more input is needed " or \
-                            msg[:48] == "ToExpression::sntx: Invalid syntax " +
-                        "in or before ":
+                        if msg[:65] == "ToExpression::sntxi: Incomplete " + \
+                           "expression; more input is needed " or \
+                            msg[:48] == "ToExpression::sntx: Invalid syntax " + \
+                            "in or before ":
                             raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
                         if lastmessage[0:8] == "Syntax::":
                             for p in range(len(lastmessage)):
@@ -967,8 +968,8 @@ class WolframKernel(ProcessMetaKernel):
                     fullformtxt = outputtext[(pp + lentex + 2):]
                     fullformtxt = fullformtxt.replace("\"", "\\\"")
                     htmlstr = outputtext[(pp + 1):(pp + lentex + 1)]
-                    htmlstr = "<div onclick='alert(\"" + fullformtxt +
-                    "\");'>" + htmlstr + "</div>"
+                    htmlstr = "<div onclick='alert(\"" + fullformtxt + \
+                                             "\");'>" + htmlstr + "</div>"
 #                    self.Display(HTML(htmlstr))
                     return HTML(htmlstr)
         if (outputtext[:4] == 'tex:'):
