@@ -782,9 +782,13 @@ class WolframKernel(ProcessMetaKernel):
             for p in range(len(outputtext) - 4):
                 pp = p + 4
                 if outputtext[pp] == ':':
-                    self.log.warning(outputtext[(pp+1):])
-                    self.Display(Image(outputtext[4:pp]))
-                    return outputtext[(pp + 1):]
+                    start = pp + 21
+                    end = outputtext.find(":", start)
+                    self.log.warning(outputtext[start:end])
+                    self.log.warning(outputtext[end+1:])
+                    outputtext = base64.standard_b64decode(outputtext[pp+21:end])
+                    self.Display(SVG(outputtext))
+                    return outputtext[(end + 1):]
 
         if(outputtext[:6] == 'image:'):
             for p in range(len(outputtext) - 6):
