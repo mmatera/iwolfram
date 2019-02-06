@@ -259,23 +259,23 @@ class WolframKernel(ProcessMetaKernel):
                            {'wait': True, 'name': "stderr", 'text': warning})
         return
 
-    def clean_comments(self,cmd):
+    def clean_comments(self, cmd):
         i = 0
         posopencomment = -1
         openstring = False
-        while i<len(cmd):
+        while i < len(cmd):
             if cmd[i] == '"':
-               i += 1
-               openstring = True
-               while i<len(cmd):
-                   if cmd[i] == "\\":
-                       i += 2
-                       continue
-                   if cmd[i] == '"':
-                       i += 1
-                       openstring = False
-                       break
-                   i += 1
+                i += 1
+                openstring = True
+                while i < len(cmd):
+                    if cmd[i] == "\\":
+                        i += 2
+                        continue
+                    if cmd[i] == '"':
+                        i += 1
+                        openstring = False
+                        break
+                    i += 1
             elif i+1 < len(cmd) and cmd[i:i+2] == "(*":
                 posopencomment = i
                 i = i + 1
@@ -289,11 +289,11 @@ class WolframKernel(ProcessMetaKernel):
                     i += 1
             else:
                 i += 1
-                
-        if  openstring or posopencomment != -1:
+
+        if openstring or posopencomment != -1:
             raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
         return cmd
-        
+
     def stream_handler(self, strm):
         if len(self.bufferout) == 0:
             if len(strm.strip()) == 0:
@@ -305,7 +305,8 @@ class WolframKernel(ProcessMetaKernel):
                     return
         self.bufferout = self.bufferout + strm + "\n"
         offset = 0
-        while len(self.bufferout) > offset and self.bufferout[offset] in ("\n", " "):
+        while len(self.bufferout) > offset and \
+              self.bufferout[offset] in ("\n", " "):
             offset = offset + 1
             if len(self.bufferout) == offset:
                 return
@@ -319,11 +320,11 @@ class WolframKernel(ProcessMetaKernel):
             if len(self.bufferout) < endpos:
                 return
             else:
-               msg = self.bufferout[idx:endpos]
-               self.bufferout = self.bufferout[endpos:]
-               print(msg)
-        elif self.bufferout[offset:idx]=="M:":
-            while self.bufferout[idx]!=":":
+                msg = self.bufferout[idx:endpos]
+                self.bufferout = self.bufferout[endpos:]
+                print(msg)
+        elif self.bufferout[offset:idx] == "M:":
+            while self.bufferout[idx] != ":":
                 idx = idx + 1
             lenmsg = self.bufferout[(offset+2):idx]
             idx = idx + 1
@@ -331,22 +332,24 @@ class WolframKernel(ProcessMetaKernel):
             if len(self.bufferout) < endpos:
                 return
             else:
-               msg = self.bufferout[idx:endpos]
-               self.bufferout = self.bufferout[endpos:]
-               if msg[:65] == "ToExpression::sntxi: Incomplete expression; more input is needed " or \
-                  msg[:48] == "ToExpression::sntx: Invalid syntax in or before ":
-                   raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
-               if msg[0:8] == "Syntax::":
-                   for p in range(len(msg)):
-                       if msg[p] == ":":
-                           break
-                   self.Error(MMASyntaxError(msg[0:p], -1, msg[p+1:]))
-               elif msg[0:11] == "Power::infy":
-                   self.Error(msg)
-               elif msg[0:18] == "OpenWrite::noopen":
-                   self.Error(msg)
-               else:
-                   self.Error(msg)
+                msg = self.bufferout[idx:endpos]
+                self.bufferout = self.bufferout[endpos:]
+                if msg[:65] == "ToExpression::sntxi: Incomplete expression;" +
+                " more input is needed " or \
+                    msg[:48] == "ToExpression::sntx: Invalid syntax " +
+                "in or before ":
+                    raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
+                if msg[0:8] == "Syntax::":
+                    for p in range(len(msg)):
+                        if msg[p] == ":":
+                            break
+                    self.Error(MMASyntaxError(msg[0:p], -1, msg[p+1:]))
+                elif msg[0:11] == "Power::infy":
+                    self.Error(msg)
+                elif msg[0:18] == "OpenWrite::noopen":
+                    self.Error(msg)
+                else:
+                    self.Error(msg)
         return
 
     def print(self, msg):
@@ -365,23 +368,26 @@ class WolframKernel(ProcessMetaKernel):
         self.check_wolfram()
 
         if self.kernel_type in ["wolfram"]:
-            self.process_response=self.process_response_wolfram
+            self.process_response = self.process_response_wolfram
             self.open_envel = "ToExpression[\"Identity["
             self.close_envel = "]\"]"
-            cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
-            
+            cmdline = self.language_info['exec'] + " -rawterm -initfile '" +
+            self.initfilename + "'"
+
         if self.kernel_type in ["expreduce"]:
-            self.process_response=self.process_response_wolfram
+            self.process_response = self.process_response_wolfram
             self.do_execute_direct = self.do_execute_direct_expred
-            self.do_execute_direct_single_command = self.do_execute_direct_single_command_expred
-            cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
+            self.do_execute_direct_single_command =
+            self.do_execute_direct_single_command_expred
+            cmdline = self.language_info['exec'] +
+            " -rawterm -initfile '" + self.initfilename + "'"
 
         elif self.kernel_type in ["mathics"]:
-            self.process_response=self.process_response_mathics
+            self.process_response = self.process_response_mathics
             self.open_envel = "$PrePrint[ToExpression[\"Identity["
             self.close_envel = "]\"]]"
-            cmdline = self.language_info['exec'] + " --colors NOCOLOR --persist '" + self.initfilename + "'"
-
+            cmdline = self.language_info['exec'] +
+            " --colors NOCOLOR --persist '" + self.initfilename + "'"
 
         self.myspawner = spawnu(cmdline, errors="ignore", echo=False)
         replwrapper = REPLWrapper(self.myspawner, orig_prompt, change_prompt,
@@ -393,11 +399,11 @@ class WolframKernel(ProcessMetaKernel):
         resp = None
         codelines = [codeline.strip() for codeline in code.splitlines()]
         # Remove every empty line at the end of the cell
-        while len(codelines)>0  and codelines[-1].strip() == "":
+        while len(codelines) > 0 and codelines[-1].strip() == "":
             del codelines[-1]
 
         lastcommand = ""
-        i=0
+        i = 0
         lencodelines = len(codelines)
         # Go through each line in the input
         while i < lencodelines:
@@ -409,8 +415,9 @@ class WolframKernel(ProcessMetaKernel):
             # continue until the end of the current command
             while i <= lencodelines:
                 # If the line is empty, check if we have now a complete command
-                if i == lencodelines or codelines[i].strip() == "" :
-                    # Check first if the command is something more than a comment, and if it is complete.
+                if i == lencodelines or codelines[i].strip() == "":
+                    # Check first if the command is something more
+                    # than a comment, and if it is complete.
                     try:
                         lastcommand = self.clean_comments(lastcommand).strip()
                         if lastcommand == "":
@@ -431,10 +438,11 @@ class WolframKernel(ProcessMetaKernel):
                                 'traceback': e.traceback,
                             }
                             return TextOutput("null:")
-                        
+
                     try:
-                        resp = self.do_execute_direct_single_command(lastcommand, 
-                                              stream_handler=self.stream_handler)
+                        resp = self.do_execute_direct_single_command(
+                            lastcommand,
+                            stream_handler=self.stream_handler)
                         resp = self.postprocess_response(resp.output)
                         i = i + 1
                         if i < lencodelines:
@@ -442,10 +450,12 @@ class WolframKernel(ProcessMetaKernel):
                         lastcommand = ""
                         break
                     except MMASyntaxError as e:
-                        # if the error is due to unbalanced  parentheses or open string ,
+                        # if the error is due to unbalanced
+                        # parentheses or open string,
                         if e.name == "sntxi":
-                            self.wrapper.run_command("$Line=$Line-2;", timeout=None,
-                                                 stream_handler=None)
+                            self.wrapper.run_command("$Line=$Line-2;",
+                                                     timeout=None,
+                                                     stream_handler=None)
                             if i < lencodelines:
                                 lastcommand += "\n" + codelines[i]
                                 i += 1
@@ -462,7 +472,7 @@ class WolframKernel(ProcessMetaKernel):
                         else:
                             self.post_execute(resp, lastcommand, False)
                             lastcommand = ""
-                            i += 1 
+                            i += 1
                             break
                 else:
                     if i < lencodelines:
@@ -470,8 +480,9 @@ class WolframKernel(ProcessMetaKernel):
                         i += 1
         return resp
 
-
-    def do_execute_direct_single_command(self, code, stream_handler=None, envelop=True):
+    def do_execute_direct_single_command(self, code,
+                                         stream_handler=None,
+                                         envelop=True):
         """Execute the code in the subprocess.
         Use the stream_handler to process lines as they are emitted
         by the subprocess.
@@ -488,20 +499,22 @@ class WolframKernel(ProcessMetaKernel):
         interrupted = False
         output = ''
         if envelop:
-            code = code.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n","\\n")
+            code = code.replace("\\", "\\\\").replace("\"", "\\\"")
+            code = code.replace("\n", "\\n")
             if code.strip()[-1] == ";":
-                code = self.open_envel +  code + self.close_envel + ";"
+                code = self.open_envel + code + self.close_envel + ";"
             else:
                 code = self.open_envel + code + self.close_envel
 
-        # Ugly, but I didn't find another effective way to clean properly the buffer
+        # Ugly, but I didn't find another effective way
+        # to  properly clean the buffer
         try:
             remaining = ""
             while True:
-                remaining += self.myspawner.read_nonblocking(100,.1)
+                remaining += self.myspawner.read_nonblocking(100, .1)
         except TIMEOUT as e:
             pass
-    
+
         try:
             self.bufferout = ""
             output = self.wrapper.run_command(code, timeout=None,
@@ -509,7 +522,7 @@ class WolframKernel(ProcessMetaKernel):
             if (stream_handler is not None):
                 output = self.bufferout + output
                 self.bufferout = ""
-            
+
             output = self.process_response(output)
             self.bufferout = ""
 
@@ -555,9 +568,10 @@ class WolframKernel(ProcessMetaKernel):
                 'user_expressions': {},
             }
         return TextOutput(output)
-###############################################
 
-    def do_execute_direct_single_command_expred(self, code, stream_handler=None):
+    def do_execute_direct_single_command_expred(self,
+                                                code,
+                                                stream_handler=None):
         """Execute the code in the subprocess.
         Use the stream_handler to process lines as they are emitted
         by the subprocess.
@@ -634,7 +648,8 @@ class WolframKernel(ProcessMetaKernel):
 
         string_open = bracketstring != "" and bracketstring[-1] == '"'
 
-        if not string_open and bracketstring != "" and bracketstring[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ',']:
+        if not string_open and bracketstring != "" and
+        bracketstring[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ',']:
             bracketstring = bracketstring[:-1]
 
         for c in codeline:
@@ -674,7 +689,8 @@ class WolframKernel(ProcessMetaKernel):
                     bracketstring = bracketstring[:-1]
                 else:
                     raise MMASyntaxError("Syntax::sntxf", -1, codeline)
-        if codeline[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ','] and not string_open:
+        if codeline[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ','] and
+        not string_open:
             bracketstring = bracketstring + codeline[-1]
         return bracketstring
 
@@ -767,8 +783,6 @@ class WolframKernel(ProcessMetaKernel):
         resp = self.do_execute_direct_single_command(lastline)
         return self.postprocess_response(resp.output)
 
-
-###############################################
     def process_response_wolfram(self, resp):
         """
         This routine splits the output from messages
@@ -798,8 +812,10 @@ class WolframKernel(ProcessMetaKernel):
                 if len(lastmessage) >= messagelength:
                     if messagetype == "M":
                         self.show_warning(lastmessage)
-                        if msg[:65] == "ToExpression::sntxi: Incomplete expression; more input is needed " or \
-                           msg[:48] == "ToExpression::sntx: Invalid syntax in or before ":
+                        if msg[:65] == "ToExpression::sntxi: Incomplete " +
+                        "expression; more input is needed " or \
+                           msg[:48] == "ToExpression::sntx: " +
+                        "Invalid syntax in or before ":
                             raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
                         if lastmessage[0:8] == "Syntax::":
                             for p in range(len(lastmessage)):
@@ -850,7 +866,6 @@ class WolframKernel(ProcessMetaKernel):
             self.execution_count = mmaexeccount
         return(outputtext)
 
-
     def process_response_mathics(self, resp):
         """
         This routine splits the output from messages
@@ -882,8 +897,10 @@ class WolframKernel(ProcessMetaKernel):
                 if len(lastmessage) >= messagelength:
                     if messagetype == "M":
                         self.show_warning(lastmessage)
-                        if msg[:65] == "ToExpression::sntxi: Incomplete expression; more input is needed " or \
-                           msg[:48] == "ToExpression::sntx: Invalid syntax in or before ":
+                        if msg[:65] == "ToExpression::sntxi: Incomplete " +
+                        "expression; more input is needed " or \
+                            msg[:48] == "ToExpression::sntx: Invalid syntax " +
+                        "in or before ":
                             raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
                         if lastmessage[0:8] == "Syntax::":
                             for p in range(len(lastmessage)):
@@ -931,7 +948,6 @@ class WolframKernel(ProcessMetaKernel):
             self.execution_count = mmaexeccount
         return(outputtext)
 
-
     def postprocess_response(self, outputtext):
         # self.log.warning("*** postprocessing " + outputtext + "...")
         if(outputtext[:5] == 'null:'):
@@ -951,7 +967,8 @@ class WolframKernel(ProcessMetaKernel):
                     fullformtxt = outputtext[(pp + lentex + 2):]
                     fullformtxt = fullformtxt.replace("\"", "\\\"")
                     htmlstr = outputtext[(pp + 1):(pp + lentex + 1)]
-                    htmlstr = "<div onclick='alert(\"" + fullformtxt + "\");'>" + htmlstr + "</div>"
+                    htmlstr = "<div onclick='alert(\"" + fullformtxt +
+                    "\");'>" + htmlstr + "</div>"
 #                    self.Display(HTML(htmlstr))
                     return HTML(htmlstr)
         if (outputtext[:4] == 'tex:'):
@@ -964,9 +981,9 @@ class WolframKernel(ProcessMetaKernel):
             for p in range(len(outputtext)):
                 if outputtext[p] == ':':
                     lentex = int(outputtext[:p])
-                    latexout = Latex('$' + \
-                                       outputtext[(p + 1):(p + lentex + 1)] + \
-                                       '$')
+                    latexout = Latex('$' +
+                                     outputtext[(p + 1):(p + lentex + 1)] +
+                                     '$')
                     standardout = outputtext[(p + lentex + 2):]
                     return latexout
 
@@ -974,7 +991,7 @@ class WolframKernel(ProcessMetaKernel):
             for p in range(len(outputtext) - 31):
                 pp = p + 31
                 if outputtext[pp] == ':':
-                    grstr= """ "<div class=\\"output_area\\"><div class=\\"run_this_cell\\" ></div> <div class=\\"prompt\\" ></div> <div  class=\\"output_subarea output_text output_result\\"><graphics3d  data='"""
+                    grstr = """ "<div class=\\"output_area\\"><div class=\\"run_this_cell\\" ></div> <div class=\\"prompt\\" ></div> <div  class=\\"output_subarea output_text output_result\\"><graphics3d  data='"""
                     grstr = grstr + outputtext[31:pp]
                     grstr = grstr + "'/></div></div>" + "\";"
                     jscommands = """
@@ -997,7 +1014,8 @@ class WolframKernel(ProcessMetaKernel):
                 if outputtext[pp] == ':':
                     start = pp + 21
                     end = outputtext.find(":", start)
-                    outputtext = base64.standard_b64decode(outputtext[pp+21:end])
+                    outputtext = base64.standard_b64decode(
+                        outputtext[pp+21:end])
                     self.Display(SVG(outputtext))
                     return outputtext[(end + 1):]
 
@@ -1087,7 +1105,8 @@ class WolframKernel(ProcessMetaKernel):
                                                   envelop=False)
         else:
             self.do_execute_direct_single_command(var +
-                                                  ' = "' + value.__repr__() + '"',
+                                                  ' = "' +
+                                                  value.__repr__() + '"',
                                                   envelop=False)
 
     def get_variable(self, var):
