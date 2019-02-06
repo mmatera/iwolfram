@@ -225,7 +225,7 @@ JupyterReturnValue[v_MatrixForm]:=JupyterReturnExpressionTeX[v];
 JupyterReturnValue[v_ShowForm]:=(Print["showform\\"];JupyterReturnExpressionTeX[v[[1]]]);
 
 JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]], 
-                            "string:"<> ExportString[InputForm@v, "Base64"],
+                            "string:"<> ExportString[InputForm@v//ToString, "Base64"],
 			    (*else*)
 			    JupyterReturnImage[v] <> ":" <>
 			    ToString[InputForm[#1/.{Graphics[___]-> "- graphics -",

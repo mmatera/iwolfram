@@ -390,6 +390,7 @@ class WolframKernel(ProcessMetaKernel):
         return replwrapper
 
     def do_execute_direct(self, code):
+        self.log.warning("using wolfram execute_direct")
         self.payload = []
         resp = None
         codelines = [codeline.strip() for codeline in code.splitlines()]
@@ -632,7 +633,7 @@ class WolframKernel(ProcessMetaKernel):
 
         return TextOutput(output)
 
-    def update_bracket_string_expred(self, bracketstring, codeline):
+    def update_bracket_string(self, bracketstring, codeline):
         escape = False
         codeline = codeline.strip()
         if codeline == "":
@@ -693,6 +694,7 @@ class WolframKernel(ProcessMetaKernel):
         output to the Kernel. For the last codeline, it leaves this
         task to Metakernel.
         """
+        self.log.warning("processing codelines")
         # self.check_js_libraries_loaded()
         # Processing multiline code
         codelines = [codeline.strip() for codeline in code.splitlines()]
@@ -702,6 +704,7 @@ class WolframKernel(ProcessMetaKernel):
 
         bracketstring = ""
         for codeline in codelines:
+            self.log.warning("next codeline: + "+codeline)
             try:
                 bracketstring = self.update_bracket_string(bracketstring,
                                                            codeline)
