@@ -13,7 +13,7 @@ ImageOutputFormat::usage="Returns the current image output format";
 
 
 
-ImagesWidth[]:=imagewidth
+ImageWidth[]:=imagewidth
 
 $DisplayFunction=Identity;
 
