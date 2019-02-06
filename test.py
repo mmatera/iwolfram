@@ -14,13 +14,14 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # (and start with a dot)
     file_extension = '.m'
 
+    code_page_something = "? Print"
     # Optional --------------------------------------
 
     # Code in the kernel's language to write "hello, world" to stdout
     code_hello_world = 'Print["hello, world"]\n'
 
     # code which should print something to stderr
-    code_stderr = 'OpenWrite["/proc"]'
+    # code_stderr = 'OpenWrite["/proc"]'
 
     # Samples of code which generate a result value (ie, some text
     # displayed as Out[n])
@@ -33,7 +34,7 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # the expected MIME type
     # TODO
     code_display_data = [
-        {'code': "Plot[x,{x,0,1}]", 'mime': "text/html"}
+        {'code': "Plot[x,{x,0,1}]", 'mime': "image/png"}
     ]
 
 
