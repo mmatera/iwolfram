@@ -292,7 +292,6 @@ class WolframKernel(ProcessMetaKernel):
                 
         if  openstring or posopencomment != -1:
             raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
-        self.log.warning("cmd=<<"+ cmd+">>")
         return cmd
         
     def stream_handler(self, strm):
@@ -390,7 +389,6 @@ class WolframKernel(ProcessMetaKernel):
         return replwrapper
 
     def do_execute_direct(self, code):
-        self.log.warning("using wolfram execute_direct")
         self.payload = []
         resp = None
         codelines = [codeline.strip() for codeline in code.splitlines()]
@@ -421,7 +419,6 @@ class WolframKernel(ProcessMetaKernel):
                             continue
                     except MMASyntaxError as e:
                         if i < lencodelines:
-                            self.log.warning(" let's wait for the next line...")
                             lastcommand += "\n" + codelines[i]
                             i += 1
                             continue
@@ -436,7 +433,6 @@ class WolframKernel(ProcessMetaKernel):
                             return TextOutput("null:")
                         
                     try:
-                        self.log.warning(" sending <<" + lastcommand + ">>")
                         resp = self.do_execute_direct_single_command(lastcommand, 
                                               stream_handler=self.stream_handler)
                         resp = self.postprocess_response(resp.output)
@@ -503,13 +499,11 @@ class WolframKernel(ProcessMetaKernel):
             remaining = ""
             while True:
                 remaining += self.myspawner.read_nonblocking(100,.1)
-                self.log.warning("      remaining: <<" + remaining +">>")
         except TIMEOUT as e:
-            self.log.warning(" empty")
+            pass
     
         try:
             self.bufferout = ""
-            self.log.warning("Sending the comamnd <<" + code +">>")                                        
             output = self.wrapper.run_command(code, timeout=None,
                                               stream_handler=stream_handler)
             if (stream_handler is not None):
@@ -520,7 +514,6 @@ class WolframKernel(ProcessMetaKernel):
             self.bufferout = ""
 
         except MMASyntaxError as e:
-            self.log.warning("exception: " + e.__str__())
             if e.name == "sntxi":
                 raise e
             else:
@@ -694,7 +687,7 @@ class WolframKernel(ProcessMetaKernel):
         output to the Kernel. For the last codeline, it leaves this
         task to Metakernel.
         """
-        self.log.warning("processing codelines")
+
         # self.check_js_libraries_loaded()
         # Processing multiline code
         codelines = [codeline.strip() for codeline in code.splitlines()]
@@ -704,7 +697,6 @@ class WolframKernel(ProcessMetaKernel):
 
         bracketstring = ""
         for codeline in codelines:
-            self.log.warning("next codeline: + "+codeline)
             try:
                 bracketstring = self.update_bracket_string(bracketstring,
                                                            codeline)
@@ -879,7 +871,6 @@ class WolframKernel(ProcessMetaKernel):
         for linnum, liner in enumerate(lineresponse):
             if linnum == 0:
                 liner = liner[1:]
-            # self.log.warning(str(linnum) + ": " + liner)
             if outputfound:
                 if liner.strip() == "":
                     continue
@@ -1006,8 +997,6 @@ class WolframKernel(ProcessMetaKernel):
                 if outputtext[pp] == ':':
                     start = pp + 21
                     end = outputtext.find(":", start)
-                    self.log.warning(outputtext[start:end])
-                    self.log.warning(outputtext[end+1:])
                     outputtext = base64.standard_b64decode(outputtext[pp+21:end])
                     self.Display(SVG(outputtext))
                     return outputtext[(end + 1):]
