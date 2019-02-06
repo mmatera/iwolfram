@@ -365,11 +365,18 @@ class WolframKernel(ProcessMetaKernel):
         change_prompt = None
         self.check_wolfram()
 
-        if self.kernel_type in ["wolfram", "expreduce"]:
+        if self.kernel_type in ["wolfram"]:
             self.process_response=self.process_response_wolfram
             self.open_envel = "ToExpression[\"Identity["
             self.close_envel = "]\"]"
             cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
+            
+        if self.kernel_type in ["expreduce"]:
+            self.process_response=self.process_response_wolfram
+            self.do_execute_direct = self.do_execute_direct_expred
+            self.do_execute_direct_single_command = self.do_execute_direct_single_command_expred
+            cmdline = self.language_info['exec'] + " -rawterm -initfile '" + self.initfilename + "'"
+
         elif self.kernel_type in ["mathics"]:
             self.process_response=self.process_response_mathics
             self.open_envel = "$PrePrint[ToExpression[\"Identity["
@@ -554,7 +561,219 @@ class WolframKernel(ProcessMetaKernel):
                 'user_expressions': {},
             }
         return TextOutput(output)
+###############################################
 
+    def do_execute_direct_single_command_expred(self, code, stream_handler=None):
+        """Execute the code in the subprocess.
+        Use the stream_handler to process lines as they are emitted
+        by the subprocess.
+        """
+        self.payload = []
+
+        if not code.strip():
+            self.kernel_resp = {
+                'status': 'ok',
+                'execution_count': self.execution_count,
+                'payload': [],
+                'user_expressions': {},
+            }
+            return
+
+        interrupted = False
+        output = ''
+        try:
+            output = self.wrapper.run_command(code.rstrip(), timeout=-1,
+                                              stream_handler=stream_handler)
+# TODO:  instead of proccess_response, it would be better
+# to capture the prints and warnings at the moment they are sended.
+            output = self.process_response(output)
+            if stream_handler is not None:
+                output = ''
+
+        except MMASyntaxError as e:
+            self.kernel_resp = {
+                'status': 'error',
+                'execution_count': self.execution_count,
+                'ename': e.name, 'evalue': e.val,
+                'traceback': e.traceback,
+            }
+            return TextOutput("null:")
+        except KeyboardInterrupt as e:
+            interrupted = True
+            output = self.wrapper.child.before
+            if 'REPL not responding to interrupt' in str(e):
+                output += '\n%s' % e
+        except EOF:
+            output = self.wrapper.child.before + 'Restarting'
+            self._start()
+
+        if interrupted:
+            self.kernel_resp = {
+                'status': 'abort',
+                'execution_count': self.execution_count,
+            }
+
+        exitcode, trace = self.check_exitcode()
+
+        if exitcode:
+            self.kernel_resp = {
+                'status': 'error',
+                'execution_count': self.execution_count,
+                'ename': '', 'evalue': str(exitcode),
+                'traceback': trace,
+            }
+        else:
+            self.kernel_resp = {
+                'status': 'ok',
+                'execution_count': self.execution_count,
+                'payload': [],
+                'user_expressions': {},
+            }
+
+        return TextOutput(output)
+
+    def update_bracket_string_expred(self, bracketstring, codeline):
+        escape = False
+        codeline = codeline.strip()
+        if codeline == "":
+            return bracketstring
+
+        string_open = bracketstring != "" and bracketstring[-1] == '"'
+
+        if not string_open and bracketstring != "" and bracketstring[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ',']:
+            bracketstring = bracketstring[:-1]
+
+        for c in codeline:
+            if string_open:
+                if escape:
+                    escape = False
+                elif c == "\\" and string_open:
+                    escape = True
+                elif c == '"':
+                    string_open = False
+                    bracketstring = bracketstring[:-1]
+                continue
+            if c == '"':
+                string_open = True
+                bracketstring = bracketstring + '"'
+                continue
+            if c in ['(', '[', '{']:
+                bracketstring = bracketstring + c
+            if c == ')':
+                if bracketstring == "":
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+                if bracketstring[-1] == '(':
+                    bracketstring = bracketstring[:-1]
+                else:
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+            if c == ']':
+                if bracketstring == "":
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+                if bracketstring[-1] == '[':
+                    bracketstring = bracketstring[:-1]
+                else:
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+            if c == '}':
+                if bracketstring == "":
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+                if bracketstring[-1] == '{':
+                    bracketstring = bracketstring[:-1]
+                else:
+                    raise MMASyntaxError("Syntax::sntxf", -1, codeline)
+        if codeline[-1] in ['+', '-', '*', '/', '>', '<', '=', '^', ','] and not string_open:
+            bracketstring = bracketstring + codeline[-1]
+        return bracketstring
+
+    def do_execute_direct_expred(self, code):
+        """
+        If code is a single line, execute it and postprocess it.
+        For a multiline code, it splits it and call for each line
+        do_execute_direct_single_line(). For all except the last
+        codeline, it calls to MetaKernel.post_execute() to send the
+        output to the Kernel. For the last codeline, it leaves this
+        task to Metakernel.
+        """
+        # self.check_js_libraries_loaded()
+        # Processing multiline code
+        codelines = [codeline.strip() for codeline in code.splitlines()]
+        lastline = ""
+        prevcmd = ""
+        resp = None
+
+        bracketstring = ""
+        for codeline in codelines:
+            try:
+                bracketstring = self.update_bracket_string(bracketstring,
+                                                           codeline)
+                if bracketstring != "" and bracketstring[-1] == '"':
+                    codeline = codeline + "\\n"
+            except MMASyntaxError as e:
+                self.kernel_resp = {
+                    'status': 'error',
+                    'execution_count': self.execution_count,
+                    'ename': e.name, 'evalue': e.val,
+                    'traceback': e.traceback,
+                }
+                return
+            # If brackets are not balanced, add codeline
+            # to lastline and continue
+            if bracketstring != "":
+                lastline = lastline + codeline
+                continue
+            # If brackets are balanced, and the new line is empty:
+            if codeline == "":
+                if lastline == "":
+                    continue
+                # If there was a resp before, calls post_execute and
+                # continue. This have to be here because for the last
+                # line, post_execute is called directly from the main
+                # loop of MetaKernel
+                if resp is not None:
+                    self.post_execute(resp, prevcmd, False)
+                resp = self.do_execute_direct_single_command(lastline)
+                resp = self.postprocess_response(resp.output)
+                prevcmd = lastline
+                lastline = ""
+                continue
+            lastline = lastline + codeline
+
+        # Finishing to process the line before the last line
+        if lastline == "":
+            return resp
+        else:
+            if resp is not None:
+                self.post_execute(resp, prevcmd, False)
+
+        # If the last line is complete:
+        if bracketstring != "":
+            if bracketstring[-1] in ['(', '[', '{']:
+                errname = "Syntax::bktmcp"
+                self.show_warning("Syntax::bktmcp: Expression has no closing" +
+                                  bracketstring[-1])
+            else:
+                errname = "Syntax::tsntxi"
+                self.show_warning("Syntax::bktmcp: Expression incomplete.")
+            self.kernel_resp = {
+                'status': 'error',
+                'execution_count': self.execution_count,
+                'ename': errname, 'evalue': "-1",
+                'traceback': lastline,
+            }
+            return
+
+        # Evaluating last valid code line
+        # #
+        # # TODO: Implement the functionality of PrePrint in mathics.
+        # # It would fix also the call for %# as part of expressions.
+        # #
+        if self.kernel_type == "mathics":
+            lastline = "$PrePrint[" + lastline + "]"
+
+        resp = self.do_execute_direct_single_command(lastline)
+        return self.postprocess_response(resp.output)
+
+
+###############################################
     def process_response_wolfram(self, resp):
         """
         This routine splits the output from messages
