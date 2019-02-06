@@ -249,7 +249,6 @@ class WolframKernel(ProcessMetaKernel):
         self.bufferout = ""
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
-        # self.log.warning("help required")
         if none_on_fail:
             return None
         else:
@@ -260,8 +259,43 @@ class WolframKernel(ProcessMetaKernel):
                            {'wait': True, 'name': "stderr", 'text': warning})
         return
 
+    def clean_comments(self,cmd):
+        i = 0
+        posopencomment = -1
+        openstring = False
+        while i<len(cmd):
+            if cmd[i] == '"':
+               i += 1
+               openstring = True
+               while i<len(cmd):
+                   if cmd[i] == "\\":
+                       i += 2
+                       continue
+                   if cmd[i] == '"':
+                       i += 1
+                       openstring = False
+                       break
+                   i += 1
+            elif i+1 < len(cmd) and cmd[i:i+2] == "(*":
+                posopencomment = i
+                i = i + 1
+                while i < len(cmd):
+                    if i+1 < len(cmd):
+                        if cmd[i:i+2] == "*)":
+                            cmd = cmd[:posopencomment] + cmd[i+2:]
+                            i = posopencomment + 1
+                            posopencomment = -1
+                            break
+                    i += 1
+            else:
+                i += 1
+                
+        if  openstring or posopencomment != -1:
+            raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
+        self.log.warning("cmd=<<"+ cmd+">>")
+        return cmd
+        
     def stream_handler(self, strm):
-        self.log.warning("stream: {{" + strm + "}}")        
         if len(self.bufferout) == 0:
             if len(strm.strip()) == 0:
                 return
@@ -302,20 +336,18 @@ class WolframKernel(ProcessMetaKernel):
                self.bufferout = self.bufferout[endpos:]
                if msg[:65] == "ToExpression::sntxi: Incomplete expression; more input is needed " or \
                   msg[:48] == "ToExpression::sntx: Invalid syntax in or before ":
-                   self.log.warning("incomplete")
                    raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
                if msg[0:8] == "Syntax::":
                    for p in range(len(msg)):
                        if msg[p] == ":":
                            break
-                   raise MMASyntaxError(msg[0:p], -1,
-                                                     msg[p+1:])
+                   self.Error(MMASyntaxError(msg[0:p], -1, msg[p+1:]))
                elif msg[0:11] == "Power::infy":
-                   raise MMASyntaxError(msg[0:11],
-                                                     msg[13:])
+                   self.Error(msg)
                elif msg[0:18] == "OpenWrite::noopen":
-                   raise MMASyntaxError(msg[0:18],
-                                                     msg[20:])
+                   self.Error(msg)
+               else:
+                   self.Error(msg)
         return
 
     def print(self, msg):
@@ -352,6 +384,7 @@ class WolframKernel(ProcessMetaKernel):
 
     def do_execute_direct(self, code):
         self.payload = []
+        resp = None
         codelines = [codeline.strip() for codeline in code.splitlines()]
         # Remove every empty line at the end of the cell
         while len(codelines)>0  and codelines[-1].strip() == "":
@@ -362,7 +395,6 @@ class WolframKernel(ProcessMetaKernel):
         lencodelines = len(codelines)
         # Go through each line in the input
         while i < lencodelines:
-            self.log.warning("processing line " + str(i) +": <<"+ codelines[i] +">>")
             if codelines[i].strip() == "" and lastcommand == "":
                 i += 1
                 continue
@@ -371,21 +403,37 @@ class WolframKernel(ProcessMetaKernel):
             # continue until the end of the current command
             while i <= lencodelines:
                 # If the line is empty, check if we have now a complete command
-                if i == lencodelines:
-                    self.log.warning("   [end of the cell]")
-                else:
-                    self.log.warning("   processing next line " + str(i) +": <<"+ codelines[i] +">>")
                 if i == lencodelines or codelines[i].strip() == "" :
+                    # Check first if the command is something more than a comment, and if it is complete.
                     try:
-                        self.log.warning("trying line...<<"+ lastcommand +">>")
+                        lastcommand = self.clean_comments(lastcommand).strip()
+                        if lastcommand == "":
+                            i = i + 1
+                            resp = None
+                            continue
+                    except MMASyntaxError as e:
+                        if i < lencodelines:
+                            self.log.warning(" let's wait for the next line...")
+                            lastcommand += "\n" + codelines[i]
+                            i += 1
+                            continue
+                        else:
+                            self.Error(e)
+                            self.kernel_resp = {
+                                'status': 'error',
+                                'execution_count': self.execution_count,
+                                'ename': e.name, 'evalue': e.val,
+                                'traceback': e.traceback,
+                            }
+                            return TextOutput("null:")
+                        
+                    try:
+                        self.log.warning(" sending <<" + lastcommand + ">>")
                         resp = self.do_execute_direct_single_command(lastcommand, 
                                               stream_handler=self.stream_handler)
-                        self.log.warning("  output:<<"+resp.__str__() +">>")
                         resp = self.postprocess_response(resp.output)
-                        self.log.warning("  postprocess output:<<"+resp.__str__()+">>")
                         i = i + 1
                         if i < lencodelines:
-                            self.log.warning("OK. Post execution ...")
                             self.post_execute(resp, lastcommand, False)
                         lastcommand = ""
                         break
@@ -399,6 +447,7 @@ class WolframKernel(ProcessMetaKernel):
                                 i += 1
                                 continue
                             else:
+                                self.Error(e)
                                 self.kernel_resp = {
                                     'status': 'error',
                                     'execution_count': self.execution_count,
@@ -407,7 +456,6 @@ class WolframKernel(ProcessMetaKernel):
                                 }
                                 return TextOutput("null:")
                         else:
-                            self.log.warning("Post processing line after exception...")
                             self.post_execute(resp, lastcommand, False)
                             lastcommand = ""
                             i += 1 
@@ -416,7 +464,6 @@ class WolframKernel(ProcessMetaKernel):
                     if i < lencodelines:
                         lastcommand += "\n" + codelines[i]
                         i += 1
-                        self.log.warning("lastcommand=<<"+lastcommand+">>")
         return resp
 
 
@@ -457,9 +504,6 @@ class WolframKernel(ProcessMetaKernel):
             self.log.warning("Sending the comamnd <<" + code +">>")                                        
             output = self.wrapper.run_command(code, timeout=None,
                                               stream_handler=stream_handler)
-            self.log.warning("      output single line:<<" + output +">>")
-            self.log.warning("      in buffer:<<" + self.bufferout +">>")
-            self.log.warning("      myspawn: \n" + self.myspawner.__str__())
             if (stream_handler is not None):
                 output = self.bufferout + output
                 self.bufferout = ""
