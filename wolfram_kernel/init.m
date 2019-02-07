@@ -240,6 +240,7 @@ JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[
 If[StringTake[$Version,{1,7}] == "Mathics", 
    (*Print["Defining system dependent expressions for mathics"];*)
    (*   JupyterReturnImage = JupyterReturnImageFileSVG; *)
+   ExportString[expr_,"Base64"]:= (Export[Jupyter`tmpdir<>"/currexpr.txt", expr,"Base64"];Import[Jupyter`tmpdir<>"/currexpr.txt"]);
    JupyterReturnImage = JupyterReturnBase64SVG; 
    JupyterReturnValue[v_String]:= "string:"<> ExportString[v, "Base64"];   
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
