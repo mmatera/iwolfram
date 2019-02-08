@@ -241,6 +241,9 @@ If[StringTake[$Version,{1,7}] == "Mathics",
    (*Print["Defining system dependent expressions for mathics"];*)
    (*   JupyterReturnImage = JupyterReturnImageFileSVG; *)
    ExportString[expr_,"Base64"]:= (Export[Jupyter`tmpdir<>"/currexpr.txt", expr,"Base64"];Import[Jupyter`tmpdir<>"/currexpr.txt"]);
+   WriteString[OutputStream["stdout", 1],x_]:=System`Print[x];
+   Global`Print[s_] := WriteString[OutputStream["stdout", 1],  
+   "\nP:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"];
    JupyterReturnImage = JupyterReturnBase64SVG; 
    JupyterReturnValue[v_String]:= "string:"<> ExportString[v, "Base64"];   
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
@@ -256,6 +259,11 @@ If[StringTake[$Version,{1,7}] == "Mathics",
 			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
 						  ToString[InputForm[v]], "Base64"]);   
    JupyterSTDOUT = OutputStream["stdout", 1];
+   (*Redefine Print*)
+    Unprotect[Print];
+    Print[s_] := WriteString[OutputStream["stdout", 1],  
+    "\nP:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"]
+    Protect[Print];
   ]
 
 
@@ -285,13 +293,6 @@ Message[m_MessageName, vals___] :=
 WriteString[OutputStream["stdout", 1], BuildMessage[m, vals]];
 Unprotect[Message];
 
-(*Redefine Print*)
- Unprotect[Print];
- Print[s_] := WriteString[OutputStream["stdout", 1],  
-"\nP:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"]
- Protect[Print];
 End[];
 EndPackage[];
 
-$Line=0;
-Dialog[];
