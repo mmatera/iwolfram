@@ -255,7 +255,6 @@ class WolframKernel(ProcessMetaKernel):
             return "Sorry, no help is available on '%s'." % info['code']
 
     def show_warning(self, warning):
-        self.log.warning("show warning: sending response stream <<"+ warning +">>")
         self.send_response(self.iopub_socket, 'stream',
                            {'wait': True, 'name': "stderr", 'text': warning})
         return
@@ -297,15 +296,12 @@ class WolframKernel(ProcessMetaKernel):
 
     def stream_handler(self, strm):
         if self.kernel_type == "mathics" and strm.strip() != "":
-            self.log.warning("raw strm:<<"+strm + ">>")
             startpos = len('Out[{0}]= '.format(self.execution_count))
             if strm[1] not in [" ", "\t"]:
                 msg = strm.split("\n")[0]
                 strm = "M:" + str(len(msg)) + ":" + strm
-                self.log.warning("err strm:<<"+strm + ">>")
             else:
                 strm = strm[startpos:]
-                self.log.warning("strm:<<"+strm + ">>")
 
         if len(self.bufferout) == 0:
             if len(strm.strip()) == 0:
@@ -313,7 +309,6 @@ class WolframKernel(ProcessMetaKernel):
             else:
                 if strm[0] != 'M' and strm[0] != 'P' and  \
                    not(len(strm) >= 4 and strm.strip()[:4] == "Out["):
-                    self.log.warning("  unknown line: printing as it is: <<"+strm+">>")
                     print(strm)
                     return
         self.bufferout = self.bufferout + strm + "\n"
@@ -335,7 +330,7 @@ class WolframKernel(ProcessMetaKernel):
             else:
                 msg = self.bufferout[idx:endpos]
                 self.bufferout = self.bufferout[endpos:]
-                print("msg:" + msg)
+                print(msg)
         elif self.bufferout[offset:idx] == "M:":
             while self.bufferout[idx] != ":":
                 idx = idx + 1
@@ -366,7 +361,6 @@ class WolframKernel(ProcessMetaKernel):
         return
 
     def print(self, msg):
-        self.log.warning("print: sending response stream <<"+msg+">>")
         self.send_response(self.iopub_socket, 'stream',
                            {'wait': True, 'name': "stdout", 'text': msg})
         return
@@ -539,7 +533,6 @@ class WolframKernel(ProcessMetaKernel):
                 self.bufferout = ""
 
             output = self.process_response(output)
-            self.log.warning("   singleline output:<<"+ output +">>")
             self.bufferout = ""
 
         except MMASyntaxError as e:
@@ -896,7 +889,6 @@ class WolframKernel(ProcessMetaKernel):
         outputtext = "null:"
         sangria = 0
         for linnum, liner in enumerate(lineresponse):
-            self.log.warning(" process_response_mathics liner=<<"+liner+">>")
             if outputfound:
                 if liner.strip() == "":
                     continue
@@ -972,7 +964,7 @@ class WolframKernel(ProcessMetaKernel):
             outputtext = outputtext[7:].rstrip()
             outputtext = base64.standard_b64decode(outputtext)
             outputtext = outputtext.decode("utf-8")
-            return "    " + outputtext
+            return  outputtext
         if (outputtext[:7] == 'mathml:'):
             for p in range(len(outputtext) - 7):
                 pp = p + 7
@@ -1033,7 +1025,6 @@ class WolframKernel(ProcessMetaKernel):
                     if outputtext[:25] == "data:image/svg+xml;base64":
                         outputtext = base64.standard_b64decode(
                             outputtext[25:]).decode("utf-8")
-                    self.log.warning("svg output:<<" + outputtext +">>")
                     self.Display(SVG(outputtext))
                     return outputtext[(end + 1):]
 
@@ -1083,7 +1074,6 @@ class WolframKernel(ProcessMetaKernel):
                 if Widget and isinstance(retval, Widget):
                     self.Display(retval)
                     return
-                self.log.warning("sending response execute_result <<"+content.__str__()+">>")
                 self.send_response(self.iopub_socket,
                                    'execute_result', content)
 
