@@ -295,6 +295,9 @@ class WolframKernel(ProcessMetaKernel):
         return cmd
 
     def stream_handler(self, strm):
+        if self.kernel_type == "mathics" and strm != "":
+            strm = strm[8:]
+
         if len(self.bufferout) == 0:
             if len(strm.strip()) == 0:
                 return
@@ -775,11 +778,6 @@ class WolframKernel(ProcessMetaKernel):
 
         # Evaluating last valid code line
         # #
-        # # TODO: Implement the functionality of PrePrint in mathics.
-        # # It would fix also the call for %# as part of expressions.
-        # #
-        if self.kernel_type == "mathics":
-            lastline = "$PrePrint[" + lastline + "]"
 
         resp = self.do_execute_direct_single_command(lastline)
         return self.postprocess_response(resp.output)
