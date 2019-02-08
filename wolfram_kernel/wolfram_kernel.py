@@ -296,11 +296,16 @@ class WolframKernel(ProcessMetaKernel):
         return cmd
 
     def stream_handler(self, strm):
-        if self.kernel_type == "mathics" and strm != "":
-            if strm[0]!=" ":
-                strm = "M:" + str(len(strm)) + ":" + strm
+        if self.kernel_type == "mathics" and strm.strip() != "":
+            self.log.warning("raw strm:<<"+strm + ">>")
+            startpos = len('Out[{0}]= '.format(self.execution_count))
+            if strm[1] not in [" ", "\t"]:
+                msg = strm.split("\n")[0]
+                strm = "M:" + str(len(msg)) + ":" + strm
+                self.log.warning("err strm:<<"+strm + ">>")
             else:
-                strm = strm[8:]
+                strm = strm[startpos:]
+                self.log.warning("strm:<<"+strm + ">>")
 
         if len(self.bufferout) == 0:
             if len(strm.strip()) == 0:
@@ -308,6 +313,7 @@ class WolframKernel(ProcessMetaKernel):
             else:
                 if strm[0] != 'M' and strm[0] != 'P' and  \
                    not(len(strm) >= 4 and strm.strip()[:4] == "Out["):
+                    self.log.warning("  unknown line: printing as it is: <<"+strm+">>")
                     print(strm)
                     return
         self.bufferout = self.bufferout + strm + "\n"
@@ -329,7 +335,7 @@ class WolframKernel(ProcessMetaKernel):
             else:
                 msg = self.bufferout[idx:endpos]
                 self.bufferout = self.bufferout[endpos:]
-                print(msg)
+                print("msg:" + msg)
         elif self.bufferout[offset:idx] == "M:":
             while self.bufferout[idx] != ":":
                 idx = idx + 1
@@ -533,6 +539,7 @@ class WolframKernel(ProcessMetaKernel):
                 self.bufferout = ""
 
             output = self.process_response(output)
+            self.log.warning("   singleline output:<<"+ output +">>")
             self.bufferout = ""
 
         except MMASyntaxError as e:
@@ -870,6 +877,7 @@ class WolframKernel(ProcessMetaKernel):
             self.execution_count = mmaexeccount
         return(outputtext)
 
+
     def process_response_mathics(self, resp):
         """
         This routine splits the output from messages
@@ -888,8 +896,7 @@ class WolframKernel(ProcessMetaKernel):
         outputtext = "null:"
         sangria = 0
         for linnum, liner in enumerate(lineresponse):
-            if linnum == 0:
-                liner = liner[1:]
+            self.log.warning(" process_response_mathics liner=<<"+liner+">>")
             if outputfound:
                 if liner.strip() == "":
                     continue
@@ -903,8 +910,8 @@ class WolframKernel(ProcessMetaKernel):
                         self.show_warning(lastmessage)
                         if msg[:65] == "ToExpression::sntxi: Incomplete " + \
                            "expression; more input is needed " or \
-                            msg[:48] == "ToExpression::sntx: Invalid syntax " + \
-                            "in or before ":
+                           msg[:48] == "ToExpression::sntx: " + \
+                           "Invalid syntax in or before ":
                             raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
                         if lastmessage[0:8] == "Syntax::":
                             for p in range(len(lastmessage)):
@@ -915,6 +922,9 @@ class WolframKernel(ProcessMetaKernel):
                         if lastmessage[0:11] == "Power::infy":
                             raise MMASyntaxError(lastmessage[0:11],
                                                  lastmessage[13:])
+                        if lastmessage[0:18] == "OpenWrite::noopen":
+                            raise MMASyntaxError(lastmessage[0:18],
+                                                 lastmessage[20:])
                     elif messagetype == "P":
                         print(lastmessage)
                     messagefound = False
@@ -944,10 +954,10 @@ class WolframKernel(ProcessMetaKernel):
                     lastmessage = lastmessage + liner[k:]
                 else:  # For some reason, Information do not pass
                         # through Print or  $PrePrint
-                    print(liner)
+                    if liner != "":
+                        print(liner)
             else:  # Shouldn't happen
                 print("extra line? " + liner)
-
         if mmaexeccount > 0:
             self.execution_count = mmaexeccount
         return(outputtext)
@@ -1019,7 +1029,11 @@ class WolframKernel(ProcessMetaKernel):
                     start = pp + 21
                     end = outputtext.find(":", start)
                     outputtext = base64.standard_b64decode(
-                        outputtext[pp+21:end])
+                        outputtext[pp+21:end]).decode("utf-8")
+                    if outputtext[:25] == "data:image/svg+xml;base64":
+                        outputtext = base64.standard_b64decode(
+                            outputtext[25:]).decode("utf-8")
+                    self.log.warning("svg output:<<" + outputtext +">>")
                     self.Display(SVG(outputtext))
                     return outputtext[(end + 1):]
 

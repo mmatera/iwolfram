@@ -241,6 +241,9 @@ If[StringTake[$Version,{1,7}] == "Mathics",
    (*Print["Defining system dependent expressions for mathics"];*)
    (*Support for functions that are not currently available in mathics*)
    ExportString[expr_,"Base64"]:= (Export[Jupyter`tmpdir<>"/currexpr.txt", expr,"Base64"];Import[Jupyter`tmpdir<>"/currexpr.txt"]);
+   ExportString[v_Graphics, "SVG", opts___]:=Module[{chain}, chain=v//MathMLForm//ToString;StringTake[chain, {49,-11}]];
+   ExportString[v_Graphics3D, "SVG", opts___]:="string:"<>ExportString["Graphics3D Not supported yet...", "Base64"];
+   JupyterReturnValue[v_Graphics3D]:="string:"<>ExportString["Graphics3D Not supported yet...", "Base64"];
    Unprotect[WriteString];
    WriteString[OutputStream["stdout", 1],x_]:=System`Print[x];
    Protect[WriteString];
