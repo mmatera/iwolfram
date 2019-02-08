@@ -255,6 +255,7 @@ class WolframKernel(ProcessMetaKernel):
             return "Sorry, no help is available on '%s'." % info['code']
 
     def show_warning(self, warning):
+        self.log.warning("show warning: sending response stream <<"+ warning +">>")
         self.send_response(self.iopub_socket, 'stream',
                            {'wait': True, 'name': "stderr", 'text': warning})
         return
@@ -296,7 +297,10 @@ class WolframKernel(ProcessMetaKernel):
 
     def stream_handler(self, strm):
         if self.kernel_type == "mathics" and strm != "":
-            strm = strm[8:]
+            if strm[0]!=" ":
+                strm = "M:" + str(len(strm)) + ":" + strm
+            else:
+                strm = strm[8:]
 
         if len(self.bufferout) == 0:
             if len(strm.strip()) == 0:
@@ -356,6 +360,7 @@ class WolframKernel(ProcessMetaKernel):
         return
 
     def print(self, msg):
+        self.log.warning("print: sending response stream <<"+msg+">>")
         self.send_response(self.iopub_socket, 'stream',
                            {'wait': True, 'name': "stdout", 'text': msg})
         return
@@ -1064,6 +1069,7 @@ class WolframKernel(ProcessMetaKernel):
                 if Widget and isinstance(retval, Widget):
                     self.Display(retval)
                     return
+                self.log.warning("sending response execute_result <<"+content.__str__()+">>")
                 self.send_response(self.iopub_socket,
                                    'execute_result', content)
 
