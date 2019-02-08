@@ -34,7 +34,7 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # the expected MIME type
     # TODO
     code_display_data = [
-        {'code': "Plot[x,{x,0,1}]", 'mime': "image/png"}
+        {'code': "Plot[x,{x,0,1}]", 'mime': "image/svg+xml"}
     ]
 
 
