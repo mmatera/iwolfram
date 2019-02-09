@@ -12,6 +12,8 @@ SetImageOutputFormat::usage="Set the type of image output to format. Accepts  st
 ImageOutputFormat::usage="Returns the current image output format";
 
 
+InteractiveGraphics3D::usage="Activate or deactivate the Three.js graphics3d support";
+
 
 ImageWidth[]:=imagewidth
 
@@ -23,11 +25,17 @@ $DisplayFunction=Identity;
 Begin["Jupyter`Private`"];
 
 
+InteractiveGraphics3D[]:=If[JupyterReturn3D==JupyterReturn3DThree, "On", "Off"];
+InteractiveGraphics3D["On"]:=(JupyterReturn3D=JupyterReturn3DImage);
+InteractiveGraphics3D["Off"]:=(JupyterReturn3D=JupyterReturn3DThree);
+
+
 SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
-                                                JupyterReturnImage = JupyterReturnBase64PNG]
+                                                If[format=="jpg",JupyterReturnImage = JupyterReturnBase64JPG, 
+                                                JupyterReturnImage = JupyterReturnBase64PNG]]
 
 
-ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg","png"]
+ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg",If[JupyterReturnImage==JupyterReturnBase64JPG,"jpg","png"]
 
 
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;]
@@ -208,9 +216,10 @@ MathicsGraphics3DToJSON[v_Graphics3D]:=(StringReplace[StringTake[v//MathMLForm//
 
 Graphics3DToJSON = If[Mathics, MathicsGraphics3DToJSON, WMGraphics3DToJSON];
 
-(*https://github.com/mathics/Mathics*)
-JupyterReturn3D[v_]:= "3d:" <> "data:json/graphics3d;base64," <>
+JupyterReturn3DThree[v_]:= "3d:" <> "data:json/graphics3d;base64," <>
 		      StringReplace[ExportString[Graphics3DToJSON[v],"Base64"] ,"\n"->""];
+
+JupyterReturn3DImage[v_]:=JupyterReturnImage[v]  <>  ":" <> "- graphics3D -"
 
 
 
