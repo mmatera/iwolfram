@@ -26,8 +26,8 @@ Begin["Jupyter`Private`"];
 
 
 InteractiveGraphics3D[]:=If[JupyterReturn3D==JupyterReturn3DThree, "On", "Off"];
-InteractiveGraphics3D["On"]:=(JupyterReturn3D=JupyterReturn3DImage);
-InteractiveGraphics3D["Off"]:=(JupyterReturn3D=JupyterReturn3DThree);
+InteractiveGraphics3D["On"]:=(JupyterReturn3D=JupyterReturn3DThree);
+InteractiveGraphics3D["Off"]:=(JupyterReturn3D=JupyterReturn3DImage);
 
 
 SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
