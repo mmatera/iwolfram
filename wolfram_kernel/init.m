@@ -11,7 +11,6 @@ SetImageOutputFormat::usage="Set the type of image output to format. Accepts  st
 
 ImageOutputFormat::usage="Returns the current image output format";
 
-
 InteractiveGraphics3D::usage="Activate or deactivate the Three.js graphics3d support";
 
 
@@ -32,30 +31,21 @@ InteractiveGraphics3D["Off"]:=(JupyterReturn3D=JupyterReturn3DImage);
 
 SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
                                                 If[format=="jpg",JupyterReturnImage = JupyterReturnBase64JPG, 
-                                                JupyterReturnImage = JupyterReturnBase64PNG]]
+                                                JupyterReturnImage = JupyterReturnBase64PNG]];
+ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg",If[JupyterReturnImage==JupyterReturnBase64JPG,"jpg","png"]];
+If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;];
+JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"];
 
-
-ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg",If[JupyterReturnImage==JupyterReturnBase64JPG,"jpg","png"]
-
-
-If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;]
-
-
-JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]
-
-JupyterReturnValue[Null]:="null:"
-
+JupyterReturnValue[Null]:="null:";
 JupyterReturnValue[v_Association]:= "string:"<> ExportString[InputForm@v, "Base64"];
-
 (*JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
-						  ToString[InputForm[v]], "BASE64"])
+						  ToString[InputForm[v]], "BASE64"]);
 *)
 JupyterReturnImageFileSVG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".svg"},
 				    Export[fn, v, "SVG",ImageSize->Jupyter`imagewidth];
 				    "image:" <> fn 			    
-				   ]
-
+				   ];
 
 JupyterReturnImageFileJPG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg"},
 				    Export[fn,v,"jpg",ImageSize->Jupyter`imagewidth];
@@ -211,15 +201,13 @@ WMGraphics3DToJSON[g_Graphics3D]:= Module[{viewpoint, args, mmaelems,elem, mmaop
 
 
 MathicsGraphics3DToJSON[v_Graphics3D]:=(StringReplace[StringTake[v//MathMLForm//ToString,{43,-33}],"&quot;"->"\""]);
-
-(*xxxxxxxxxxxxxxxxxxx*)
-
 Graphics3DToJSON = If[Mathics, MathicsGraphics3DToJSON, WMGraphics3DToJSON];
 
 JupyterReturn3DThree[v_]:= "3d:" <> "data:json/graphics3d;base64," <>
 		      StringReplace[ExportString[Graphics3DToJSON[v],"Base64"] ,"\n"->""];
 
 JupyterReturn3DImage[v_]:=JupyterReturnImage[v]  <>  ":" <> "- graphics3D -"
+JupyterReturn3D=JupyterReturn3DThree;
 
 
 
