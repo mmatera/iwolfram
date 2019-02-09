@@ -17,6 +17,10 @@ License
 
 IWolfram is released under the GNU General Public License (GPL).
 
+Interactive 3D Graphics
+-----------------------
+
+A basic support for interactive 3D graphics is implemented. The implementation is based on Three.js and the interface developed by Angus Griffith for the Mathics Project (https://github.com/mathics/Mathics).
 
 About graphics
 ---------------

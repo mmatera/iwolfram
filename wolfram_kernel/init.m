@@ -202,26 +202,22 @@ WMGraphics3DToJSON[g_Graphics3D]:= Module[{viewpoint, args, mmaelems,elem, mmaop
 ];
 
 
+MathicsGraphics3DToJSON[v_Graphics3D]:=(StringReplace[StringTake[v//MathMLForm//ToString,{43,-33}],"&quot;"->"\""]);
+
+(*xxxxxxxxxxxxxxxxxxx*)
+
 Graphics3DToJSON = If[Mathics, MathicsGraphics3DToJSON, WMGraphics3DToJSON];
 
-(*JupyterReturn3D[v_]:= "3d:" <> "data:json/graphics3d;base64," <>
-		      StringReplace[ExportString[Graphics3DToJSON[v],"Base64"] ,"\n"->""];*)
+(*https://github.com/mathics/Mathics*)
+JupyterReturn3D[v_]:= "3d:" <> "data:json/graphics3d;base64," <>
+		      StringReplace[ExportString[Graphics3DToJSON[v],"Base64"] ,"\n"->""];
 
 
 
 JupyterReturnValue[v_Graphics]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -";
-
-JupyterReturn3D[v_]:= JupyterReturnImage[v]  <>  ":" <> "- graphics3D -";
-
 JupyterReturnValue[v_Legended]:= JupyterReturnImage[v]  <>  ":" <> "- graphics -";
-
-
 JupyterReturnValue[v_Graphics3D]:= JupyterReturn3D[v]  <>  ":" <> "- graphics3D -";
-
-
-
 JupyterReturnValue[v_MatrixForm]:=JupyterReturnExpressionTeX[v];
-
 JupyterReturnValue[v_ShowForm]:=(Print["showform\\"];JupyterReturnExpressionTeX[v[[1]]]);
 
 JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]], 
@@ -243,7 +239,6 @@ If[StringTake[$Version,{1,7}] == "Mathics",
    ExportString[expr_,"Base64"]:= (Export[Jupyter`tmpdir<>"/currexpr.txt", expr,"Base64"];Import[Jupyter`tmpdir<>"/currexpr.txt"]);
    ExportString[v_Graphics, "SVG", opts___]:=Module[{chain}, chain=v//MathMLForm//ToString;StringTake[chain, {49,-11}]];
    ExportString[v_Graphics3D, "SVG", opts___]:="string:"<>ExportString["Graphics3D Not supported yet...", "Base64"];
-   JupyterReturnValue[v_Graphics3D]:="string:"<>ExportString["Graphics3D Not supported yet...", "Base64"];
    Unprotect[WriteString];
    WriteString[OutputStream["stdout", 1],x_]:=System`Print[x];
    Protect[WriteString];
