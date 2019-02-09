@@ -1001,16 +1001,16 @@ class WolframKernel(ProcessMetaKernel):
                     grstr = grstr + outputtext[31:pp]
                     grstr = grstr + "'/></div></div>" + "\";"
                     jscommands = """
-                        requirejs(["nbextensions/nbmathics/static/main"],function(main){require('main');
                         var last3d=$(this)[0].element[0];
+                        requirejs(["nbextensions/nbmathics/static/js/graphics3d"],function(graphics3d){                        
                         last3d.innerHTML=last3d.innerHTML+""" + grstr
-
                     jscommands = jscommands + """
                     last3d = last3d.lastChild.lastChild;
                     var jsondata = atob(last3d.lastChild.getAttribute("data"));
                     jsondata = JSON.parse(jsondata);
-                    drawGraphics3D(last3d, jsondata);});
+                    graphics3d.drawGraphics3D(last3d, jsondata);});
                     """
+                    self.log.warning("<<"+ jscommands+">>")
                     self.Display(Javascript(jscommands))
                     return "    " + outputtext[(pp + 1):]
 

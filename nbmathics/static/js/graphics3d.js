@@ -1,4 +1,6 @@
-function drawPoint(prim) {
+define(['nbextensions/nbmathics/static/js/three.min'],function(THREE){
+    THREE=window.THREE;
+    function drawPoint(prim) {
   var mesh, pointgeom, pointmat, tmpvertex, color;
 
   // console.log("drawPoint");
@@ -769,5 +771,9 @@ function drawGraphics3D(container, data) {
   ScaleInView();
   render();     
   positionticknums();
-}
+};
+    return {
+	"test":0,
+	"drawGraphics3D": drawGraphics3D};
+		 });
 
