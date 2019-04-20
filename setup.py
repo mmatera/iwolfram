@@ -40,7 +40,7 @@ if "--mma-exec" in sys.argv:
     sys.argv.pop(idx)
     candidate = sys.argv.pop(idx)
     try:
-        starttext = os.popen("bash -c 'echo |" +  candidate  +"'").read()
+        starttext = os.popen(candidate).read()
         if starttext[:11] == "Mathematica":			      
             print("Using Wolfram Mathematica")
             wmmexec = candidate
@@ -58,7 +58,7 @@ if wmmexec is None:
                    if os.access(os.path.join(path, 'MathKernel'), os.X_OK)]
     for candidate in candidates:    
         try:
-            starttext = os.popen("bash -c 'echo |" +  candidate  +"'").read()
+            starttext = os.popen(candidate).read()
             if starttext[:11] == "Mathematica":			      
                 print("MathKernel (Wolfram version) found at " + candidate)
                 wmmexec = candidate
@@ -71,7 +71,7 @@ if wmmexec is None:
                    if os.access(os.path.join(path, 'mathics'), os.X_OK)]
     for candidate in candidates:    
         try:
-            starttext = os.popen("bash -c 'echo |" +  candidate  +"'").read()
+            starttext = os.popen(candidate).read()
             if starttext[:8] == "\nmathics":			      
                 print("Mathics version found at " + candidate)
                 wmmexec = candidate
