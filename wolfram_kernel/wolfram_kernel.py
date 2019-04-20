@@ -234,7 +234,7 @@ class WolframKernel(ProcessMetaKernel):
     def check_wolfram(self):
         #starttext = os.popen("bash -c 'echo |" +
         #                     self.language_info['exec'] + "'").read()
-	starttext = os.popen(self.language_info['exec']).read()
+        starttext = os.popen(self.language_info['exec']).read()
         if starttext[:11] == "Mathematica":
             self.kernel_type = "wolfram"
         elif starttext[:8] == "\nMathics":
