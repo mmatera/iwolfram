@@ -401,6 +401,7 @@ class WolframKernel(ProcessMetaKernel):
 
         self.myspawner = spawnu(cmdline, errors="ignore", echo=False)
         replwrapper = REPLWrapper(self.myspawner, orig_prompt, change_prompt,
+                                  continuation_prompt_regex="Interrupt>",
                                   prompt_emit_cmd=None, echo=False)
         return replwrapper
 
@@ -549,7 +550,20 @@ class WolframKernel(ProcessMetaKernel):
                 return TextOutput("null:")
         except KeyboardInterrupt as e:
             interrupted = True
-            output = self.wrapper.child.before
+            self.wrapper.child.before = "a"
+            output = self.wrapper.interrupt()
+            try:
+                rest = self.myspawner.read_nonblocking(500, 1)
+            except TIMEOUT as f:
+                rest = ""
+                pass
+            self.myspawner.sendline("a")
+            try:
+                rest = self.myspawner.read_nonblocking(500, 1)
+            except TIMEOUT as f:
+                rest = ""
+                pass
+
             if 'REPL not responding to interrupt' in str(e):
                 output += '\n%s' % e
         except EOF:

@@ -7,7 +7,7 @@ from distutils import log
 from IPython.utils.tempdir import TemporaryDirectory
 
 
-
+import platform
 import json
 import os
 import sys
@@ -40,7 +40,10 @@ if "--mma-exec" in sys.argv:
     sys.argv.pop(idx)
     candidate = sys.argv.pop(idx)
     try:
-        starttext = os.popen(candidate).read()
+        if platform.system() == "Linux":
+            starttext = os.popen("bash -c echo |'" + candidate + "'").read()
+        else:
+            starttext = os.popen(candidate).read()
         if starttext[:11] == "Mathematica":			      
             print("Using Wolfram Mathematica")
             wmmexec = candidate
