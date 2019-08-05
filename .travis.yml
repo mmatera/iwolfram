@@ -6,12 +6,12 @@ python:
 #  - 3.3
 before_install:
   - python --version
-  - sudo pip install git+https://github.com/mmatera/mathics
-  - pip install ipywidgets
-  - pip install ipykernel
-  - pip install metakernel
-  - pip install jupyter_kernel_test
-  - pip install unittest2
+  - sudo pip3 install git+https://github.com/mmatera/mathics
+  - pip3 install ipywidgets
+  - pip3 install ipykernel
+  - pip3 install metakernel
+  - pip3 install jupyter_kernel_test
+  - pip3 install unittest2
 install:
   - python setup.py install --mma-exec mathics
 script:
