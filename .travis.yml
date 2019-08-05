@@ -8,7 +8,8 @@ python:
 before_install:
   - sudo apt-get update  && sudo apt-get install  python3-pip 
   - python --version
-  - sudo pip3 install git+https://github.com/mmatera/mathics
+  - pip3 install numpy
+  - pip3 install git+https://github.com/mmatera/mathics
   - pip3 install ipywidgets
   - pip3 install ipykernel
   - pip3 install metakernel
