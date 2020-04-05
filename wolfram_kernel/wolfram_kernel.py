@@ -89,7 +89,8 @@ class WolframKernel(ProcessMetaKernel):
         'help_links': MetaKernel.help_links,
         'version': '0.0.0',
     }
-
+    open_envel = ""
+    close_envel = ""
     kernel_json = {
         'argv': [sys.executable, '-m', 'wolfram_kernel',
                  '-f', '{connection_file}'],
@@ -234,7 +235,13 @@ class WolframKernel(ProcessMetaKernel):
     def check_wolfram(self):
         #starttext = os.popen("bash -c 'echo |" +
         #                     self.language_info['exec'] + "'").read()
-        starttext = os.popen(self.language_info['exec']).read()
+
+        with subprocess.Popen(self.language_info['exec'],
+                              bufsize=1,
+                              stdout=subprocess.PIPE, 
+                              stdin=subprocess.PIPE) as pr:
+            starttext = pr.communicate(timeout=5)[0].decode()
+        # starttext = subprocess.run(self.language_info['exec'])
         if starttext[:11] == "Mathematica":
             self.kernel_type = "wolfram"
         elif starttext[:8] == "\nMathics":
@@ -247,6 +254,9 @@ class WolframKernel(ProcessMetaKernel):
 
     def __init__(self, *args, **kwargs):
         super(WolframKernel, self).__init__(*args, **kwargs)
+        if not self.wrapper:
+            self.wrapper = self.makeWrapper()
+
         self.bufferout = ""
 
     def get_kernel_help_on(self, info, level=0, none_on_fail=False):
@@ -377,6 +387,7 @@ class WolframKernel(ProcessMetaKernel):
         self.check_wolfram()
 
         if self.kernel_type in ["wolfram"]:
+            print("Wolfram Kernel or compabible found")
             self.process_response = self.process_response_wolfram
             self.open_envel = "ToExpression[\"Identity["
             self.close_envel = "]\"]"
@@ -384,6 +395,9 @@ class WolframKernel(ProcessMetaKernel):
                       self.initfilename + "'"
 
         if self.kernel_type in ["expreduce"]:
+            print("Expreduce found")
+            self.open_envel = ""
+            self.close_envel = ""
             self.process_response = self.process_response_wolfram
             self.do_execute_direct = self.do_execute_direct_expred
             self.do_execute_direct_single_command = \
@@ -392,6 +406,7 @@ class WolframKernel(ProcessMetaKernel):
                       " -rawterm -initfile '" + self.initfilename + "'"
 
         elif self.kernel_type in ["mathics"]:
+            print("Mathics found")
             self.process_response = self.process_response_mathics
             self.open_envel = "$PrePrint[ToExpression[\"Identity["
             self.close_envel = "]\"]]"
