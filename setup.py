@@ -11,7 +11,7 @@ import platform
 import json
 import os
 import sys
-
+import subprocess
 
 
 
@@ -33,17 +33,27 @@ if "--help" in sys.argv:
 
 
 
+def get_start_text(cmd):
+    if not os.access(cmd, os.X_OK):
+        return ""
+    else:
+        print("    command valid. Trying....")
+    with subprocess.Popen(cmd,
+                              bufsize=1,
+                              stdout=subprocess.PIPE, 
+                              stdin=subprocess.PIPE) as pr:
+        starttext = pr.communicate(timeout=5)[0].decode()
+    return starttext
+
 # As default, look first if wolfram mma is installed. Otherwise, use mathics. 
 wmmexec = None
 if "--mma-exec" in sys.argv:
     idx = sys.argv.index("--mma-exec")
     sys.argv.pop(idx)
     candidate = sys.argv.pop(idx)
+    print("trying ", candidate)
     try:
-        if platform.system() == "Linux":
-            starttext = os.popen("bash -c echo |'" + candidate + "'").read()
-        else:
-            starttext = os.popen(candidate).read()
+        starttext = get_start_text(candidate)
         if starttext[:11] == "Mathematica":			      
             print("Using Wolfram Mathematica")
             wmmexec = candidate
@@ -57,11 +67,11 @@ if "--mma-exec" in sys.argv:
         print(wmmexec  + " is not a valid interpreter. Looking for a valid one.")
             
 if wmmexec is None:
-    candidates =  [os.path.join(path, 'MathKernel') for path in os.environ["PATH"].split(os.pathsep) 
-                   if os.access(os.path.join(path, 'MathKernel'), os.X_OK)]
+    print("trying with MathKernel")
+    candidates =  [os.path.join(path, 'MathKernel') for path in os.environ["PATH"].split(os.pathsep)] 
     for candidate in candidates:    
         try:
-            starttext = os.popen(candidate).read()
+            starttext = get_start_text(candidate)
             if starttext[:11] == "Mathematica":			      
                 print("MathKernel (Wolfram version) found at " + candidate)
                 wmmexec = candidate
@@ -70,11 +80,24 @@ if wmmexec is None:
             continue
 
 if wmmexec is None:
-    candidates =  [os.path.join(path, 'mathics') for path in os.environ["PATH"].split(os.pathsep) 
-                   if os.access(os.path.join(path, 'mathics'), os.X_OK)]
+    print("trying with wolframscript")
+    candidates =  [os.path.join(path, 'wolframscript') for path in os.environ["PATH"].split(os.pathsep)] 
+    for candidate in candidates:
+        try: 
+            starttext = get_start_text(candidate)
+            if starttext[:7] == "Wolfram":			      
+                print("MathKernel (Wolfram version) found at " + candidate)
+                wmmexec = candidate
+                break
+        except Exception:
+            continue
+
+if wmmexec is None:
+    print("trying with mathics")
+    candidates =  [os.path.join(path, 'mathics') for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:    
         try:
-            starttext = os.popen(candidate).read()
+            starttext = get_start_text(candidate)
             if starttext[:8] == "\nmathics":			      
                 print("Mathics version found at " + candidate)
                 wmmexec = candidate
