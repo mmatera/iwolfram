@@ -1,6 +1,7 @@
 from __future__ import print_function
 
-import os, sys
+import os
+import sys
 from distutils.core import setup
 from setuptools.command.install import install
 from distutils import log
@@ -12,7 +13,7 @@ import json
 import os
 import sys
 import subprocess
-
+import setuptools
 
 
 try:
@@ -56,6 +57,9 @@ if "--mma-exec" in sys.argv:
         starttext = get_start_text(candidate)
         if starttext[:11] == "Mathematica":			      
             print("Using Wolfram Mathematica")
+            wmmexec = candidate
+        if starttext[:7] == "Wolfram":
+            print("Using Wolfram Script")
             wmmexec = candidate
         elif starttext[:8] == "\nMathics":			      
             print("Using Mathics")
@@ -119,10 +123,24 @@ def _is_root():
 
 class install_with_kernelspec(install):
     def run(self):
+        import os
         global wmmexec
+        if wmmexec[-13:] == "wolframscript":
+            with open("wolfram_kernel/wmath.in") as f:
+                script = f.read()
+
+            with open("wolfram_kernel/wmath","w") as f:
+                f.write("#!"+wmmexec+" -c\n")
+                f.write(script)
+            if platform.system() == "Linux":
+                os.chmod("wolfram_kernel/wmath", 0o755)
+
+            wmmexec = (setuptools.__path__)[0][:-10]  + "wolfram_kernel/wmath"
+
+
         user = '--user' in sys.argv or not _is_root()
         configfilestr = "# iwolfram configuration file\nmathexec = '{wolfram-caller-script-path}'\n\n"
-        configfilestr = configfilestr.replace('{wolfram-caller-script-path}',wmmexec)
+        configfilestr = configfilestr.replace('{wolfram-caller-script-path}', wmmexec)
         with open('wolfram_kernel/config.py','w') as f:
             f.write(configfilestr)
 
@@ -181,7 +199,7 @@ setup(name='wolfram_kernel',
       cmdclass={'install': install_with_kernelspec},
       install_requires=['metakernel', 'mathics',],
       package_data={
-          'wolfram_kernel': ['init.m'],
+          'wolfram_kernel': ['init.m','wmath',],
           'nbmathics': ['nbmathics/static/img/*.gif',
                         'nbmathics/static/css/*.css',
                         'nbmathics/static/*.js',
