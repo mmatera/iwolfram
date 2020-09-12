@@ -5,7 +5,7 @@ import sys
 from distutils.core import setup
 from setuptools.command.install import install
 from distutils import log
-from IPython.utils.tempdir import TemporaryDirectory
+# from IPython.utils.tempdir import TemporaryDirectory
 
 
 import platform
@@ -16,19 +16,13 @@ import subprocess
 import setuptools
 
 
-try:
-    from jupyter_client.kernelspec import install_kernel_spec
-except ImportError:
-    from IPython.kernel.kernelspec import install_kernel_spec
-
-
 def subdirs(root, file='*.*', depth=10):
     for k in range(depth):
         yield root + '*/' * k + file
 
 
 # Reads the specific command line arguments
-   
+
 if "--help" in sys.argv:
     print('setup install|build --mma-exec <path to mathematica executable> --iwolfram-mathkernel-path <path to store the caller>')
 
@@ -41,12 +35,12 @@ def get_start_text(cmd):
         print("    command valid. Trying....")
     with subprocess.Popen(cmd,
                               bufsize=1,
-                              stdout=subprocess.PIPE, 
+                              stdout=subprocess.PIPE,
                               stdin=subprocess.PIPE) as pr:
         starttext = pr.communicate(timeout=5)[0].decode()
     return starttext
 
-# As default, look first if wolfram mma is installed. Otherwise, use mathics. 
+# As default, look first if wolfram mma is installed. Otherwise, use mathics.
 wmmexec = None
 if "--mma-exec" in sys.argv:
     idx = sys.argv.index("--mma-exec")
@@ -55,13 +49,13 @@ if "--mma-exec" in sys.argv:
     print("trying ", candidate)
     try:
         starttext = get_start_text(candidate)
-        if starttext[:11] == "Mathematica":			      
+        if starttext[:11] == "Mathematica":
             print("Using Wolfram Mathematica")
             wmmexec = candidate
         if starttext[:7] == "Wolfram":
             print("Using Wolfram Script")
             wmmexec = candidate
-        elif starttext[:8] == "\nMathics":			      
+        elif starttext[:8] == "\nMathics":
             print("Using Mathics")
             wmmexec = candidate
         elif starttext[:21] == "Welcome to Expreduce!":
@@ -69,14 +63,14 @@ if "--mma-exec" in sys.argv:
             wmmexec = candidate
     except Exception:
         print(wmmexec  + " is not a valid interpreter. Looking for a valid one.")
-            
+
 if wmmexec is None:
     print("trying with MathKernel")
-    candidates =  [os.path.join(path, 'MathKernel') for path in os.environ["PATH"].split(os.pathsep)] 
-    for candidate in candidates:    
+    candidates =  [os.path.join(path, 'MathKernel') for path in os.environ["PATH"].split(os.pathsep)]
+    for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
-            if starttext[:11] == "Mathematica":			      
+            if starttext[:11] == "Mathematica":
                 print("MathKernel (Wolfram version) found at " + candidate)
                 wmmexec = candidate
                 break
@@ -85,11 +79,11 @@ if wmmexec is None:
 
 if wmmexec is None:
     print("trying with wolframscript")
-    candidates =  [os.path.join(path, 'wolframscript') for path in os.environ["PATH"].split(os.pathsep)] 
+    candidates =  [os.path.join(path, 'wolframscript') for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
-        try: 
+        try:
             starttext = get_start_text(candidate)
-            if starttext[:7] == "Wolfram":			      
+            if starttext[:7] == "Wolfram":
                 print("MathKernel (Wolfram version) found at " + candidate)
                 wmmexec = candidate
                 break
@@ -97,12 +91,12 @@ if wmmexec is None:
             continue
 
 if wmmexec is None:
-    print("trying with mathics")
+    print("trying with Mathics")
     candidates =  [os.path.join(path, 'mathics') for path in os.environ["PATH"].split(os.pathsep)]
-    for candidate in candidates:    
+    for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
-            if starttext[:8] == "\nmathics":			      
+            if starttext[:8] == "\nMathics":
                 print("Mathics version found at " + candidate)
                 wmmexec = candidate
                 break
@@ -110,7 +104,7 @@ if wmmexec is None:
             continue
 
 if wmmexec is None:
-    print("couldn't find a mathics/mathematica interpreter.")
+    print("Couldn't find a Mathics/Mathematica interpreter.")
     sys.exit(-1)
 
 
@@ -148,6 +142,13 @@ class install_with_kernelspec(install):
         install.run(self)
 
         def install_kernelspec(self):
+
+            try:
+                from jupyter_client.kernelspec import install_kernel_spec
+            except ImportError:
+                from IPython.kernel.kernelspec import install_kernel_spec
+
+
             from ipykernel.kernelspec import write_kernel_spec
             from jupyter_client.kernelspec import KernelSpecManager
             from wolfram_kernel.wolfram_kernel import WolframKernel
@@ -177,7 +178,7 @@ class install_with_kernelspec(install):
         #Build and Install the kernelspec
         install_kernelspec(self)
         log.info("Installing nbextension")
-        from notebook.nbextensions import install_nbextension 
+        from notebook.nbextensions import install_nbextension
         import os.path
         try:
             install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
@@ -209,7 +210,7 @@ setup(name='wolfram_kernel',
                         'nbmathics/static/js/scriptaculous/*.js',
                         'nbmathics/static/js/tree/Three.js',
                         'nbmathics/static/js/tree/Detector.js',
-                         ] + list(subdirs('media/js/mathjax/')),   
+                         ] + list(subdirs('media/js/mathjax/')),
       },
       classifiers = [
           'Framework :: IPython',
