@@ -922,7 +922,7 @@ class WolframKernel(ProcessMetaKernel):
             if outputfound:
                 if liner.strip() == "":
                     continue
-                if liner[:4] == "Out[":
+                if liner.strip()[:4] == "Out[":
                     break
                 outputtext = outputtext + liner
             elif messagefound:
@@ -955,13 +955,15 @@ class WolframKernel(ProcessMetaKernel):
                     lastmessage = ""
                 continue
             elif not outputfound and not messagefound:
+                liner = liner.strip()
                 if liner[:4] == "Out[":
                     outputfound = True
-                    for pos in range(len(liner) - 4):
-                        if liner[pos + 4] == ']':
-                            mmaexeccount = int(liner[4:(pos + 4)])
-                            outputtext = liner[(pos + 7):] + "\n"
-                            sangria = pos + 7
+                    liner = liner[4:]
+                    for pos in range(len(liner)):
+                        if liner[pos] == ']':
+                            mmaexeccount = int(liner[:pos])
+                            outputtext = liner[(pos + 3):] + "\n"
+                            sangria = pos + 3
                             break
                         continue
                 elif liner[:2] == "P:" or liner[:2] == "M:":
@@ -975,7 +977,7 @@ class WolframKernel(ProcessMetaKernel):
                     messagelength = int(liner[2:(k-1)])
                     lastmessage = lastmessage + liner[k:]
                 else:  # For some reason, Information do not pass
-                        # through Print or  $PrePrint
+                        # through Print or $PrePrint
                     if liner != "":
                         print(liner)
             else:  # Shouldn't happen

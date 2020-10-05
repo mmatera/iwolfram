@@ -1,4 +1,4 @@
-#!/usr/bin/wolframscript -c
+#!/usr/local/bin/wolframscript -c
 $Output={OutputStream["stdout",1]};
 Print["Mathematica"];
 (* ::Package:: *)
