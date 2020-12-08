@@ -38,7 +38,9 @@ def get_start_text(cmd):
                               stdout=subprocess.PIPE,
                               stdin=subprocess.PIPE) as pr:
         starttext = pr.communicate(timeout=5)[0].decode()
-    return starttext
+    # only head is required, thus crop
+    # strip removes leading LF or CR+LF in case of the mathics banner
+    return starttext[:40].strip()
 
 # As default, look first if wolfram mma is installed. Otherwise, use mathics.
 wmmexec = None
@@ -55,7 +57,7 @@ if "--mma-exec" in sys.argv:
         if starttext[:7] == "Wolfram":
             print("Using Wolfram Script")
             wmmexec = candidate
-        elif starttext[:8] == "\nMathics":
+        elif starttext[:7] == "Mathics":
             print("Using Mathics")
             wmmexec = candidate
         elif starttext[:21] == "Welcome to Expreduce!":
@@ -96,7 +98,7 @@ if wmmexec is None:
     for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
-            if starttext[:8] == "\nMathics":
+            if starttext[:7] == "Mathics":
                 print("Mathics version found at " + candidate)
                 wmmexec = candidate
                 break
