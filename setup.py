@@ -38,7 +38,9 @@ def get_start_text(cmd):
                               stdout=subprocess.PIPE,
                               stdin=subprocess.PIPE) as pr:
         starttext = pr.communicate(timeout=5)[0].decode()
-    return starttext
+    # only head is required, thus crop
+    # strip removes leading LF or CR+LF in case of the mathics banner
+    return starttext[:40].strip()
 
 # As default, look first if wolfram mma is installed. Otherwise, use mathics.
 wmmexec = None
@@ -55,7 +57,7 @@ if "--mma-exec" in sys.argv:
         if starttext[:7] == "Wolfram":
             print("Using Wolfram Script")
             wmmexec = candidate
-        elif starttext[:8] == "\nMathics":
+        elif starttext[:7] == "Mathics":
             print("Using Mathics")
             wmmexec = candidate
         elif starttext[:21] == "Welcome to Expreduce!":
@@ -66,7 +68,7 @@ if "--mma-exec" in sys.argv:
 
 if wmmexec is None:
     print("trying with MathKernel")
-    candidates =  [os.path.join(path, 'MathKernel') for path in os.environ["PATH"].split(os.pathsep)]
+    candidates =  [os.path.join(path, 'MathKernel' + (os.path.extsep + 'exe') if os.name == 'nt' else '') for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
@@ -79,7 +81,7 @@ if wmmexec is None:
 
 if wmmexec is None:
     print("trying with wolframscript")
-    candidates =  [os.path.join(path, 'wolframscript') for path in os.environ["PATH"].split(os.pathsep)]
+    candidates =  [os.path.join(path, 'wolframscript' + (os.path.extsep + 'exe') if os.name == 'nt' else '') for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
@@ -92,11 +94,12 @@ if wmmexec is None:
 
 if wmmexec is None:
     print("trying with Mathics")
-    candidates =  [os.path.join(path, 'mathics') for path in os.environ["PATH"].split(os.pathsep)]
+    candidates =  [os.path.join(path, 'mathics' + (os.path.extsep + 'exe') if os.name == 'nt' else '') for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
+        print(candidate)
         try:
             starttext = get_start_text(candidate)
-            if starttext[:8] == "\nMathics":
+            if starttext[:7] == "Mathics":
                 print("Mathics version found at " + candidate)
                 wmmexec = candidate
                 break
@@ -120,10 +123,10 @@ class install_with_kernelspec(install):
         import os
         global wmmexec
         if wmmexec[-13:] == "wolframscript":
-            with open("wolfram_kernel/wmath.in") as f:
+            with open("wolfram_kernel/wmath.in",encoding="utf-8") as f:
                 script = f.read()
 
-            with open("wolfram_kernel/wmath","w") as f:
+            with open("wolfram_kernel/wmath","w",encoding="utf-8") as f:
                 f.write("#!"+wmmexec+" -c\n")
                 f.write(script)
             if platform.system() == "Linux":
@@ -135,7 +138,7 @@ class install_with_kernelspec(install):
         user = '--user' in sys.argv or not _is_root()
         configfilestr = "# iwolfram configuration file\nmathexec = '{wolfram-caller-script-path}'\n\n"
         configfilestr = configfilestr.replace('{wolfram-caller-script-path}', wmmexec)
-        with open('wolfram_kernel/config.py','w') as f:
+        with open('wolfram_kernel/config.py','w',encoding='utf-8') as f:
             f.write(configfilestr)
 
         #Run the standard intallation
@@ -157,7 +160,7 @@ class install_with_kernelspec(install):
             kernel_spec_manager = KernelSpecManager()
             log.info('Writing kernel spec')
             kernel_spec_path = write_kernel_spec(overrides=kernel_json)
-            with open(kernel_spec_path+"/kernel.js","w") as jsfile:
+            with open(kernel_spec_path+"/kernel.js","w",encoding="utf-8") as jsfile:
                  jsfile.write(kernel_js)
 
             log.info('Installing kernel spec')
@@ -182,7 +185,10 @@ class install_with_kernelspec(install):
         import os.path
         try:
             install_nbextension(os.path.join(os.path.dirname(__file__), 'nbmathics'),overwrite=True,)
-            jup_nbex_exec = os.path.dirname(sys.executable) + "/" + "jupyter-nbextension"
+            if os.name == 'nt':
+                jup_nbex_exec = os.path.join(os.path.dirname(sys.executable), 'Scripts', 'jupyter-nbextension.exe')
+            else:
+                jup_nbex_exec = os.path.join(os.path.dirname(sys.executable), "jupyter-nbextension")
             os.system(jup_nbex_exec + " install --system  nbmathics")
             os.system(jup_nbex_exec + "  enable --system --py  nbmathics")
         except:

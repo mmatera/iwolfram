@@ -242,9 +242,13 @@ class WolframKernel(ProcessMetaKernel):
                               stdin=subprocess.PIPE) as pr:
             starttext = pr.communicate(timeout=5)[0].decode()
         # starttext = subprocess.run(self.language_info['exec'])
+
+        # only head is required, thus crop
+        # strip removes leading LF or CR+LF in case of the mathics banner
+        starttext = starttext[:40].strip()
         if starttext[:11] == "Mathematica":
             self.kernel_type = "wolfram"
-        elif starttext[:8] == "\nMathics":
+        elif starttext[:7] == "Mathics":
             self.kernel_type = "mathics"
         elif starttext[:21] == "Welcome to Expreduce!":
             self.kernel_type = "expreduce"
