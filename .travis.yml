@@ -2,8 +2,8 @@ language: python
 dist: "trusty"
 python:
 #  - 2.7
-  - 3.5
-  - 3.4
+  - 3.8
+  - 3.9
 #  - 3.3
 before_install:
   - sudo apt-get update  && sudo apt-get install  python3-pip 
