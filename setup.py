@@ -32,7 +32,7 @@ def get_start_text(cmd):
     if not os.access(cmd, os.X_OK):
         return ""
     else:
-        print("    command valid. Trying....")
+        print("    command valid. Trying " + cmd)
     with subprocess.Popen(cmd,
                               bufsize=1,
                               stdout=subprocess.PIPE,
@@ -51,6 +51,7 @@ if "--mma-exec" in sys.argv:
     print("trying ", candidate)
     try:
         starttext = get_start_text(candidate)
+        print("kernel sending", starttext)
         if starttext[:11] == "Mathematica":
             print("Using Wolfram Mathematica")
             wmmexec = candidate
@@ -68,10 +69,11 @@ if "--mma-exec" in sys.argv:
 
 if wmmexec is None:
     print("trying with MathKernel")
-    candidates =  [os.path.join(path, 'MathKernel' + (os.path.extsep + 'exe') if os.name == 'nt' else '') for path in os.environ["PATH"].split(os.pathsep)]
+    candidates = [os.path.join(path, 'MathKernel' + ((os.path.extsep + 'exe') if os.name == 'nt' else '')) for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
+            print(starttext)
             if starttext[:11] == "Mathematica":
                 print("MathKernel (Wolfram version) found at " + candidate)
                 wmmexec = candidate
@@ -81,10 +83,11 @@ if wmmexec is None:
 
 if wmmexec is None:
     print("trying with wolframscript")
-    candidates =  [os.path.join(path, 'wolframscript' + (os.path.extsep + 'exe') if os.name == 'nt' else '') for path in os.environ["PATH"].split(os.pathsep)]
+    candidates =  [os.path.join(path, 'wolframscript' + ((os.path.extsep + 'exe') if os.name == 'nt' else '')) for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
+            print(starttext)
             if starttext[:7] == "Wolfram":
                 print("MathKernel (Wolfram version) found at " + candidate)
                 wmmexec = candidate
@@ -94,11 +97,12 @@ if wmmexec is None:
 
 if wmmexec is None:
     print("trying with Mathics")
-    candidates =  [os.path.join(path, 'mathics' + (os.path.extsep + 'exe') if os.name == 'nt' else '') for path in os.environ["PATH"].split(os.pathsep)]
+    candidates =  [os.path.join(path, 'mathics' + ((os.path.extsep + 'exe') if os.name == 'nt' else '')) for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
         print(candidate)
         try:
             starttext = get_start_text(candidate)
+            print(starttext)
             if starttext[:7] == "Mathics":
                 print("Mathics version found at " + candidate)
                 wmmexec = candidate
