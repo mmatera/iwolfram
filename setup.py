@@ -40,7 +40,8 @@ def get_start_text(cmd):
         starttext = pr.communicate(timeout=5)[0].decode()
     # only head is required, thus crop
     # strip removes leading LF or CR+LF in case of the mathics banner
-    return starttext[:40].strip()
+    print("starttext=", starttext)
+    return starttext.strip()
 
 # As default, look first if wolfram mma is installed. Otherwise, use mathics.
 wmmexec = None
