@@ -1,4 +1,4 @@
-name: Mathics (Windows)
+name: IWolfram (Windows)
 
 on:
   push:
@@ -30,10 +30,10 @@ jobs:
         pip install jupyter_kernel_test
         pip install unittest2
         pip install -e git://github.com/Mathics3/pymathics-asy#egg=pymathics-asy
-    - name: Install Mathics
+    - name: Install IWolfram
       run: |
       python -m pip install -e .
-    - name: Test Mathics
+    - name: Test IWolfram
       run: |
         pip install pytest pexpect
         make -j3 check
