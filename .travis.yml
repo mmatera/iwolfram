@@ -19,6 +19,7 @@ before_install:
   - pip3 install jupyter_kernel_test
   - pip3 install unittest2
   - python -m pip install -e git://github.com/mathics/Mathics.git#egg=Mathics3
+  - python -m pip install -e git://github.com/Mathics3/pymathics-asy#egg=pymathics-asy
 install:
   - python setup.py install
 script:
