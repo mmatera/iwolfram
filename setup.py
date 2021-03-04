@@ -37,10 +37,10 @@ def get_start_text(cmd):
                               bufsize=1,
                               stdout=subprocess.PIPE,
                               stdin=subprocess.PIPE) as pr:
-        starttext = pr.communicate(timeout=5)[0].decode()
+        starttext = pr.communicate(timeout=5)[0].decode().strip()
     # only head is required, thus crop
     # strip removes leading LF or CR+LF in case of the mathics banner
-    print("starttext=", starttext)
+    print("starttext='''", starttext, "'''")
     return starttext.strip()
 
 # As default, look first if wolfram mma is installed. Otherwise, use mathics.
@@ -100,10 +100,10 @@ if wmmexec is None:
     print("trying with Mathics")
     candidates =  [os.path.join(path, 'mathics' + ((os.path.extsep + 'exe') if os.name == 'nt' else '')) for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
-        print(candidate)
+        print("trying with ", candidate)
         try:
             starttext = get_start_text(candidate)
-            print(starttext)
+            print("Start text:<<",starttext,">>")
             if starttext[:7] == "Mathics":
                 print("Mathics version found at " + candidate)
                 wmmexec = candidate
@@ -209,7 +209,7 @@ setup(name='wolfram_kernel',
       author_email='matera@fisica.unlp.edu.ar',
       packages=['wolfram_kernel','nbmathics'],
       cmdclass={'install': install_with_kernelspec},
-      install_requires=['metakernel', 'mathics',],
+      install_requires=['metakernel'],
       package_data={
           'wolfram_kernel': ['init.m','wmath',],
           'nbmathics': ['nbmathics/static/img/*.gif',
