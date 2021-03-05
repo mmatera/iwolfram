@@ -228,7 +228,7 @@ class WolframKernel(ProcessMetaKernel):
     @property
     def banner(self):
         if self._banner is None:
-            banner = "mathics 0.1"
+            banner = "wolfram kernel 0.1"
             self._banner = u(banner)
         return self._banner
 
@@ -240,7 +240,7 @@ class WolframKernel(ProcessMetaKernel):
                               bufsize=1,
                               stdout=subprocess.PIPE, 
                               stdin=subprocess.PIPE) as pr:
-            starttext = pr.communicate(timeout=5)[0].decode()
+            starttext = pr.communicate(timeout=15)[0].decode().strip()
         # starttext = subprocess.run(self.language_info['exec'])
 
         # only head is required, thus crop
@@ -412,8 +412,8 @@ class WolframKernel(ProcessMetaKernel):
         elif self.kernel_type in ["mathics"]:
             print("Mathics found")
             self.process_response = self.process_response_mathics
-            self.open_envel = "$PrePrint[ToExpression[\"Identity["
-            self.close_envel = "]\"]]"
+            self.open_envel = "ToExpression[\"Identity["
+            self.close_envel = "]\"]"
             cmdline = self.language_info['exec'] + \
                       " --colors NOCOLOR --persist '" + \
                       self.initfilename + "'"
@@ -923,6 +923,7 @@ class WolframKernel(ProcessMetaKernel):
         outputtext = "null:"
         sangria = 0
         for linnum, liner in enumerate(lineresponse):
+            self.log.warning("processing ",liner)
             if outputfound:
                 if liner.strip() == "":
                     continue
@@ -934,10 +935,10 @@ class WolframKernel(ProcessMetaKernel):
                 if len(lastmessage) >= messagelength:
                     if messagetype == "M":
                         self.show_warning(lastmessage)
-                        if msg[:65] == "ToExpression::sntxi: Incomplete " + \
-                           "expression; more input is needed " or \
-                           msg[:48] == "ToExpression::sntx: " + \
-                           "Invalid syntax in or before ":
+                        if msg[:65] == ("ToExpression::sntxi: Incomplete " + 
+                           "expression; more input is needed ") or (
+                           msg[:48] == "ToExpression::sntx: " + 
+                           "Invalid syntax in or before "):
                             raise MMASyntaxError("Syntax::sntxi", -1, "sntxi")
                         if lastmessage[0:8] == "Syntax::":
                             for p in range(len(lastmessage)):
@@ -1038,7 +1039,7 @@ class WolframKernel(ProcessMetaKernel):
                     grstr = grstr + "'/></div></div>" + "\";"
                     jscommands = """
                         var last3d=$(this)[0].element[0];
-                        requirejs(["nbextensions/nbmathics/static/js/graphics3d"],function(graphics3d){                        
+                        requirejs(["nbextensions/nbmathics/static/js/graphics3d"],function(graphics3d){
                         last3d.innerHTML=last3d.innerHTML+""" + grstr
                     jscommands = jscommands + """
                     last3d = last3d.lastChild.lastChild;

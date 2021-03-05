@@ -100,7 +100,7 @@ if wmmexec is None:
                 break
         except Exception:
             continue
-
+wmmexec = None
 if wmmexec is None:
     print("trying with Mathics")
     candidates =  [os.path.join(path, 'mathics' + ((os.path.extsep + 'exe') if os.name == 'nt' else ''))
@@ -154,7 +154,7 @@ class install_with_kernelspec(install):
 
 
         user = '--user' in sys.argv or not _is_root()
-        configfilestr = "# iwolfram configuration file\nmathexec = '{wolfram-caller-script-path}'\n\n"
+        configfilestr = f"# iwolfram configuration file\nmathexec = '{wmmexec}'\n\n"
         configfilestr = configfilestr.replace('{wolfram-caller-script-path}', wmmexec)
         with open('wolfram_kernel/config.py','w',encoding='utf-8') as f:
             f.write(configfilestr)
@@ -176,8 +176,9 @@ class install_with_kernelspec(install):
             kernel_json = WolframKernel.kernel_json
             kernel_js = WolframKernel.kernel_js
             kernel_spec_manager = KernelSpecManager()
-            log.info('Writing kernel spec')
+            log.info('Writing kernel spec in')
             kernel_spec_path = write_kernel_spec(overrides=kernel_json)
+            log.info(kernel_spec_path)
             with open(kernel_spec_path+"/kernel.js","w",encoding="utf-8") as jsfile:
                  jsfile.write(kernel_js)
 
