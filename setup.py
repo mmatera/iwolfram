@@ -123,7 +123,10 @@ if wmmexec is None:
 
 if wmmexec is None:
     print("Couldn't find a Mathics/Mathematica interpreter.")
-    sys.exit(-1)
+    print("relaying in the operative system mathics installation")
+    print("os.name=", os.name)
+    wmmexec = "mathics" + ((os.path.extsep + 'exe') if os.name == 'nt' else '')
+    #sys.exit(-1)
 
 
 def _is_root():
