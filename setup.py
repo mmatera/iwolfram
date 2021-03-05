@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+import os.path as osp
 import sys
 from distutils.core import setup
 from setuptools.command.install import install
@@ -98,11 +99,16 @@ if wmmexec is None:
 
 if wmmexec is None:
     print("trying with Mathics")
-    candidates =  [os.path.join(path, 'mathics' + ((os.path.extsep + 'exe') if os.name == 'nt' else '')) for path in os.environ["PATH"].split(os.pathsep)]
+    candidates =  [os.path.join(path, 'mathics' + ((os.path.extsep + 'exe') if os.name == 'nt' else ''))
+                                                         for path in os.environ["PATH"].split(os.pathsep)]
     for candidate in candidates:
+        if not osp.isfile(candidate):
+            continue
         print("trying with ", candidate)
         try:
             starttext = get_start_text(candidate)
+            if starttext == "":
+                continue
             print("Start text:<<",starttext,">>")
             if starttext[:7] == "Mathics":
                 print("Mathics version found at " + candidate)
