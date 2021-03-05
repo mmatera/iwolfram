@@ -32,6 +32,8 @@ jobs:
         pip install jupyter_kernel_test
         pip install unittest2
         pip install -e git://github.com/Mathics3/pymathics-asy#egg=pymathics-asy
+        dir c:\hostedtoolcache\windows\python
+        mathics.exe -e 'Print["Hola"]'
     - name: Install IWolfram
       run: |
        python -m pip install -e .
