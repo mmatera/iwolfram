@@ -34,11 +34,15 @@ def get_start_text(cmd):
         return ""
     else:
         print("    command valid. Trying " + cmd)
-    with subprocess.Popen(cmd,
+    try:
+        with subprocess.Popen(cmd,
                               bufsize=1,
                               stdout=subprocess.PIPE,
                               stdin=subprocess.PIPE) as pr:
-        starttext = pr.communicate(timeout=5)[0].decode().strip()
+            starttext = pr.communicate(timeout=5)[0].decode().strip()
+    except Exception as e:
+        print(e)
+        return ""
     # only head is required, thus crop
     # strip removes leading LF or CR+LF in case of the mathics banner
     print("starttext='''", starttext, "'''")
