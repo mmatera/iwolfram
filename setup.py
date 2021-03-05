@@ -39,7 +39,7 @@ def get_start_text(cmd):
                               bufsize=1,
                               stdout=subprocess.PIPE,
                               stdin=subprocess.PIPE) as pr:
-            starttext = pr.communicate(timeout=5)[0].decode().strip()
+            starttext = pr.communicate(timeout=15)[0].decode().strip()
     except Exception as e:
         print(e)
         return ""
