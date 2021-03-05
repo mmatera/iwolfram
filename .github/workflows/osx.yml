@@ -34,7 +34,7 @@ jobs:
         pip install -e git://github.com/Mathics3/pymathics-asy#egg=pymathics-asy
     - name: Install IWolfram
       run: |
-        python -m pip install -e .
+        python setup.py install
     - name: Test IWolfram
       run: |
         pip install pytest pexpect
