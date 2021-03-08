@@ -1,10 +1,12 @@
 (* ::Package:: *)
+Print["Loading the package"];
+
 BeginPackage["Jupyter`"];
 (* Process the output *)
-Jupyter`tmpdir = CreateDirectory[]
-imagewidth = 300
+Jupyter`tmpdir = CreateDirectory[];
+imagewidth = 300;
 
-SetImageWidth[width_]:=(imagewidth=width)
+SetImageWidth[width_]:=(imagewidth=width);
 
 
 SetImageOutputFormat::usage="Set the type of image output to format. Accepts  strings \"svg\" or \"png\" ";
@@ -14,27 +16,24 @@ ImageOutputFormat::usage="Returns the current image output format";
 InteractiveGraphics3D::usage="Activate or deactivate the Three.js graphics3d support";
 
 
-ImageWidth[]:=imagewidth
-
+ImageWidth[]:=imagewidth;
 $DisplayFunction=Identity;
 
 
 (*Internals: Hacks Print and Message to have the proper format*)
 
 Begin["Jupyter`Private`"];
-
-
 InteractiveGraphics3D[]:=If[JupyterReturn3D==JupyterReturn3DThree, "On", "Off"];
 InteractiveGraphics3D["On"]:=(JupyterReturn3D=JupyterReturn3DThree);
 InteractiveGraphics3D["Off"]:=(JupyterReturn3D=JupyterReturn3DImage);
 
 
 SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
-                                                If[format=="jpg",JupyterReturnImage = JupyterReturnBase64JPG, 
+                                                If[format=="jpg",JupyterReturnImage = JupyterReturnBase64JPG,
                                                 JupyterReturnImage = JupyterReturnBase64PNG]];
 ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg",If[JupyterReturnImage==JupyterReturnBase64JPG,"jpg","png"]];
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;];
-JupyterPrePrintFunction[v_]:=WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"];
+JupyterPrePrintFunction[v_]:=(WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]);
 
 JupyterReturnValue[Null]:="null:";
 JupyterReturnValue[v_Association]:= "string:"<> ExportString[InputForm@v, "Base64"];
@@ -44,26 +43,26 @@ JupyterReturnValue[v_Association]:= "string:"<> ExportString[InputForm@v, "Base6
 *)
 JupyterReturnImageFileSVG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".svg"},
 				    Export[fn, v, "SVG",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn 			    
+				    "image:" <> fn
 				   ];
 
 JupyterReturnImageFileJPG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg"},
 				    Export[fn,v,"jpg",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn 			    
+				    "image:" <> fn
 				   ]
 
 JupyterReturnImageFilePNG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".png"},
 				    Export[fn,v,"png",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn 			    
+				    "image:" <> fn
 				   ]
 
-JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg+xml;base64," <> 
+JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg+xml;base64," <>
                                   StringReplace[ExportString[ExportString[v,"SVG", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
-JupyterReturnBase64JPG[v_]:= "jpg:" <> "data:image/jpg;base64," <> 
+JupyterReturnBase64JPG[v_]:= "jpg:" <> "data:image/jpg;base64," <>
                                   StringReplace[ExportString[ExportString[v,"jpg", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
-JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <> 
+JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <>
                                   StringReplace[ExportString[ExportString[v,"png", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 
@@ -89,7 +88,7 @@ WMGraphics3DToJSON[g_Point]:= Module[{coords,json},
 			       	 If[Length[coords[[1]]]!=3,coords={coords}];
 			         coords = Table[{c,Null},{c,coords}];
 				 json="{\"type\": \"point\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
-				          ", \"color\": "<>facecolor<>"}";					 
+				          ", \"color\": "<>facecolor<>"}";
 				 Return[json]];
 
 
@@ -130,7 +129,7 @@ WMGraphics3DToJSON[g_Cuboid]:= Module[{coords,size,json},
 			         coords = {{coords,Null}};
 				 size = {{size,Null}};
 				 json="{\"type\": \"cube\", \"position\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
-				        ", \"size\": "<> ExportString[size,"RawJSON","Compact"->True] <>		  
+				        ", \"size\": "<> ExportString[size,"RawJSON","Compact"->True] <>
 				        ", \"faceColor\": "<>facecolor<>"}";
 				 Return[json]];
 
@@ -172,7 +171,7 @@ WMGraphics3DToJSON[g_Graphics3D]:= Module[{viewpoint, args, mmaelems,elem, mmaop
    mmaoptions = If[Length[g]==2,g[[2]],{}];
    viewpoint = (ViewPoint/.mmaoptions);
    viewpoint = "\"viewpoint\": " <> If[ToString[viewpoint] == "ViewPoint", "[1.3, -2.4, 2.0]",
-                                       ExportString[viewpoint,"RawJSON","Compact"->True]]; 
+                                       ExportString[viewpoint,"RawJSON","Compact"->True]];
    axes = Axes/.mmaoptions;
    axes = If[axes[[0]]===List,axes,{axes,axes,axes}];
    axes = Table[If[ToString[a] == "True","true","false"],{a,axes}];
@@ -217,7 +216,7 @@ JupyterReturnValue[v_Graphics3D]:= JupyterReturn3D[v]  <>  ":" <> "- graphics3D 
 JupyterReturnValue[v_MatrixForm]:=JupyterReturnExpressionTeX[v];
 JupyterReturnValue[v_ShowForm]:=(Print["showform\\"];JupyterReturnExpressionTeX[v[[1]]]);
 
-JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]], 
+JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]],
                             "string:"<> ExportString[InputForm@v//ToString, "Base64"],
 			    (*else*)
 			    JupyterReturnImage[v] <> ":" <>
@@ -230,7 +229,7 @@ JupyterReturnValue[v_]:= If[And[FreeQ[v,Graphics],FreeQ[v,Graphics3D]],
 JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[ExportString[v,"wav"],"Base64"]
 
 (*Definitions depending on the platform*)
-If[StringTake[$Version,{1,7}] == "Mathics", 
+If[StringTake[$Version,{1,7}] == "Mathics",
    (*Print["Defining system dependent expressions for mathics"];*)
    (*Support for functions that are not currently available in mathics*)
    ExportString[expr_,"Base64"]:= (Export[Jupyter`tmpdir<>"/currexpr.txt", expr,"Base64"];Import[Jupyter`tmpdir<>"/currexpr.txt"]);
@@ -239,11 +238,11 @@ If[StringTake[$Version,{1,7}] == "Mathics",
    Unprotect[WriteString];
    WriteString[OutputStream["stdout", 1],x_]:=System`Print[x];
    Protect[WriteString];
-   Global`Print[s_] := WriteString[OutputStream["stdout", 1],  
+   Global`Print[s_] := WriteString[OutputStream["stdout", 1],
    "\nP:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"];
    (******)
-   JupyterReturnImage = JupyterReturnBase64SVG; 
-   JupyterReturnValue[v_String]:= "string:"<> ExportString[v, "Base64"];   
+   JupyterReturnImage = JupyterReturnBase64SVG;
+   JupyterReturnValue[v_String]:= "string:"<> ExportString[v, "Base64"];
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 				     "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
 							   ToString[InputForm[v]] , "Base64"]);
@@ -251,15 +250,15 @@ If[StringTake[$Version,{1,7}] == "Mathics",
    ,(*Else*)
    (* Print["Defining system dependent expressions for mma "];*)
    (* JupyterReturnImage = JupyterReturnImageFilePNG; *)
-   JupyterReturnImage = JupyterReturnBase64PNG; 
+   JupyterReturnImage = JupyterReturnBase64PNG;
    JupyterReturnValue[v_String]:= "string:"<>ExportString[v,"Base64"];
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 			       "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>
-						  ToString[InputForm[v]], "Base64"]);   
+						  ToString[InputForm[v]], "Base64"]);
    JupyterSTDOUT = OutputStream["stdout", 1];
    (*Redefine Print*)
     Unprotect[Print];
-    Print[s_] := WriteString[OutputStream["stdout", 1],  
+    Print[s_] := WriteString[OutputStream["stdout", 1],
     "\nP:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"]
     Protect[Print];
   ]
@@ -290,7 +289,7 @@ Unprotect[Message];
 Message[m_MessageName, vals___] :=
 WriteString[OutputStream["stdout", 1], BuildMessage[m, vals]];
 Unprotect[Message];
-
+Print["Done"];
 End[];
 EndPackage[];
 

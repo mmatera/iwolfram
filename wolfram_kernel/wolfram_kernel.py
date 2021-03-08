@@ -12,6 +12,7 @@ from IPython.display import Audio
 
 import subprocess
 import os
+import os.path as osp
 import sys
 import tempfile
 
@@ -222,7 +223,7 @@ class WolframKernel(ProcessMetaKernel):
 
     _session_dir = ""
     _first = True
-    initfilename = os.path.dirname(__file__) + "/init.m"
+    initfilename = osp.join(osp.dirname(__file__), "init.m")
     _banner = None
 
     @property
@@ -233,18 +234,12 @@ class WolframKernel(ProcessMetaKernel):
         return self._banner
 
     def check_wolfram(self):
-        #starttext = os.popen("bash -c 'echo |" +
-        #                     self.language_info['exec'] + "'").read()
-
         with subprocess.Popen(self.language_info['exec'],
                               bufsize=1,
                               stdout=subprocess.PIPE, 
                               stdin=subprocess.PIPE) as pr:
             starttext = pr.communicate(timeout=15)[0].decode().strip()
-        # starttext = subprocess.run(self.language_info['exec'])
 
-        # only head is required, thus crop
-        # strip removes leading LF or CR+LF in case of the mathics banner
         starttext = starttext[:40].strip()
         if starttext[:11] == "Mathematica":
             self.kernel_type = "wolfram"
@@ -311,28 +306,29 @@ class WolframKernel(ProcessMetaKernel):
 
     def stream_handler(self, strm):
         if self.kernel_type == "mathics" and strm.strip() != "":
-            startpos = len('Out[{0}]= '.format(self.execution_count))
-            if strm[1] not in [" ", "\t"]:
+            # startpos = len('Out[{0}]= '.format(self.execution_count))
+            if strm[0] not in [" ", "\t"] and strm.strip():
                 msg = strm.split("\n")[0]
                 strm = "M:" + str(len(msg)) + ":" + strm
             else:
-                strm = strm[startpos:]
+                strm = strm.lstrip()
+            print("strm="+strm)
 
         if len(self.bufferout) == 0:
             if len(strm.strip()) == 0:
-                return
+                return  "No es una vaca Tengo una vaca lechera"
             else:
                 if strm[0] != 'M' and strm[0] != 'P' and  \
                    not(len(strm) >= 4 and strm.strip()[:4] == "Out["):
-                    print(strm)
-                    return
+                    print("### "+ strm)
+                    return "???????????????????"
         self.bufferout = self.bufferout + strm + "\n"
         offset = 0
         while len(self.bufferout) > offset and \
               self.bufferout[offset] in ("\n", " "):
             offset = offset + 1
             if len(self.bufferout) == offset:
-                return
+                return  "Tengo una vaca lechera"
         idx = 2 + offset
         if self.bufferout[offset:idx] == "P:":
             while self.bufferout[idx] != ":":
@@ -341,11 +337,11 @@ class WolframKernel(ProcessMetaKernel):
             idx = idx + 1
             endpos = idx + int(lenmsg) + 1
             if len(self.bufferout) < endpos:
-                return
+                return "asdasdasdsadsad"
             else:
                 msg = self.bufferout[idx:endpos]
                 self.bufferout = self.bufferout[endpos:]
-                print(msg)
+                print("Mensaje: " + msg)
         elif self.bufferout[offset:idx] == "M:":
             while self.bufferout[idx] != ":":
                 idx = idx + 1
@@ -353,7 +349,7 @@ class WolframKernel(ProcessMetaKernel):
             idx = idx + 1
             endpos = idx + int(lenmsg) + 1
             if len(self.bufferout) < endpos:
-                return
+                return "---s-as-a-a-a-a"
             else:
                 msg = self.bufferout[idx:endpos]
                 self.bufferout = self.bufferout[endpos:]
@@ -366,18 +362,23 @@ class WolframKernel(ProcessMetaKernel):
                     for p in range(len(msg)):
                         if msg[p] == ":":
                             break
+                    print("sending error MMASyntaxError")
                     self.Error(MMASyntaxError(msg[0:p], -1, msg[p+1:]))
                 elif msg[0:11] == "Power::infy":
+                    print("sending error Power::infy")
                     self.Error(msg)
                 elif msg[0:18] == "OpenWrite::noopen":
+                    print("sending error noopen")
                     self.Error(msg)
                 else:
-                    self.Error(msg)
-        return
+                    msg = msg.strip()
+                    if len(msg)!=0:
+                        self.Error(msg)
+        return "bbjajajajaaj"
 
     def print(self, msg):
         self.send_response(self.iopub_socket, 'stream',
-                           {'wait': True, 'name': "stdout", 'text': msg})
+                           {'wait': True, 'name': "stdout", 'text': "From print: "+msg})
         return
 
     def makeWrapper(self):
@@ -587,7 +588,7 @@ class WolframKernel(ProcessMetaKernel):
                 output += '\n%s' % e
         except EOF:
             output = self.wrapper.child.before + 'Restarting'
-            self._start()
+            #self._start()
 
         if interrupted:
             self.kernel_resp = {
@@ -868,7 +869,7 @@ class WolframKernel(ProcessMetaKernel):
                             raise MMASyntaxError(lastmessage[0:18],
                                                  lastmessage[20:])
                     elif messagetype == "P":
-                        print(lastmessage)
+                        print("Last message=", lastmessage)
                     messagefound = False
                     messagelength = 0
                     messagetype = ""
@@ -897,7 +898,7 @@ class WolframKernel(ProcessMetaKernel):
                 else:  # For some reason, Information do not pass
                         # through Print or  $PrePrint
                     if liner != "":
-                        print(liner)
+                        print("--->",liner)
             else:  # Shouldn't happen
                 print("extra line? " + liner)
         if mmaexeccount > 0:
@@ -923,7 +924,6 @@ class WolframKernel(ProcessMetaKernel):
         outputtext = "null:"
         sangria = 0
         for linnum, liner in enumerate(lineresponse):
-            self.log.warning("processing ",liner)
             if outputfound:
                 if liner.strip() == "":
                     continue
@@ -935,6 +935,7 @@ class WolframKernel(ProcessMetaKernel):
                 if len(lastmessage) >= messagelength:
                     if messagetype == "M":
                         self.show_warning(lastmessage)
+                        msg = lastmessage
                         if msg[:65] == ("ToExpression::sntxi: Incomplete " + 
                            "expression; more input is needed ") or (
                            msg[:48] == "ToExpression::sntx: " + 
@@ -953,7 +954,7 @@ class WolframKernel(ProcessMetaKernel):
                             raise MMASyntaxError(lastmessage[0:18],
                                                  lastmessage[20:])
                     elif messagetype == "P":
-                        print(lastmessage)
+                        print("Last message: ", lastmessage)
                     messagefound = False
                     messagelength = 0
                     messagetype = ""
@@ -984,7 +985,7 @@ class WolframKernel(ProcessMetaKernel):
                 else:  # For some reason, Information do not pass
                         # through Print or $PrePrint
                     if liner != "":
-                        print(liner)
+                        print("liner=", liner)
             else:  # Shouldn't happen
                 print("extra line? " + liner)
         if mmaexeccount > 0:
@@ -1047,7 +1048,7 @@ class WolframKernel(ProcessMetaKernel):
                     jsondata = JSON.parse(jsondata);
                     graphics3d.drawGraphics3D(last3d, jsondata);});
                     """
-                    self.log.warning("<<"+ jscommands+">>")
+                    #self.log.warning("<<"+ jscommands+">>")
                     self.Display(Javascript(jscommands))
                     return "    " + outputtext[(pp + 1):]
 
@@ -1069,7 +1070,8 @@ class WolframKernel(ProcessMetaKernel):
             for p in range(len(outputtext) - 6):
                 pp = p + 6
                 if outputtext[pp] == ':':
-                    print(outputtext[6:pp])
+                    # print("sending image: ")
+                    # print(outputtext[6:pp])
                     self.Display(Image(outputtext[6:pp]))
                     return outputtext[(pp + 1):]
 

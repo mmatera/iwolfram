@@ -140,13 +140,21 @@ class install_with_kernelspec(install):
     def run(self):
         import os
         global wmmexec
+        print("Installing kernelspec")
         if wmmexec[-13:] == "wolframscript":
-            with open("wolfram_kernel/wmath.in",encoding="utf-8") as f:
+            with open("wolfram_kernel/init.m",encoding="utf-8") as f:
                 script = f.read()
 
             with open("wolfram_kernel/wmath","w",encoding="utf-8") as f:
                 f.write("#!"+wmmexec+" -c\n")
+                f.write('Output={OutputStream["stdout",1]};\n')
+                f.write('Print["Mathematica"];\n')
                 f.write(script)
+                f.write("\n")
+                f.write('$Line=0;\n')
+                f.write('Dialog[];\n')
+                f.write("")
+
             if platform.system() == "Linux":
                 os.chmod("wolfram_kernel/wmath", 0o755)
 

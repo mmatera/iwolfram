@@ -3,10 +3,10 @@ Print["Mathematica"];
 (* ::Package:: *)
 BeginPackage["Jupyter`"];
 (* Process the output *)
-Jupyter`tmpdir = CreateDirectory[]
-imagewidth = 300
+Jupyter`tmpdir = CreateDirectory[];
+imagewidth = 300;
 
-SetImageWidth[width_]:=(imagewidth=width)
+SetImageWidth[width_]:=(imagewidth=width);
 
 
 SetImageOutputFormat::usage="Set the type of image output to format. Accepts  strings \"svg\" or \"png\" ";
@@ -16,8 +16,7 @@ ImageOutputFormat::usage="Returns the current image output format";
 InteractiveGraphics3D::usage="Activate or deactivate the Three.js graphics3d support";
 
 
-ImageWidth[]:=imagewidth
-
+ImageWidth[]:=imagewidth;
 $DisplayFunction=Identity;
 
 
@@ -46,17 +45,17 @@ JupyterReturnValue[v_Association]:= "string:"<> ExportString[InputForm@v, "Base6
 *)
 JupyterReturnImageFileSVG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".svg"},
 				    Export[fn, v, "SVG",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn 			    
+				    "image:" <> fn
 				   ];
 
 JupyterReturnImageFileJPG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg"},
 				    Export[fn,v,"jpg",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn 			    
+				    "image:" <> fn
 				   ]
 
 JupyterReturnImageFilePNG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".png"},
 				    Export[fn,v,"png",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn 			    
+				    "image:" <> fn
 				   ]
 
 JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg+xml;base64," <> 
@@ -76,7 +75,7 @@ WMGraphics3DToJSON[g_Sphere]:= Module[{coords,rad},
 				      1, coords=g[[1]];rad=1.,
 				      2, coords=g[[1]];rad=g[[2]]
 				      ];
-			       	 If[Length[coords[[1]]]!=3,coords={coords}];
+			         If[Length[coords[[1]]]!=3,coords={coords}];
 			         coords = Table[{c,Null},{c,coords}];
 				 Return["{\"type\": \"sphere\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
 				          ", \"radius\": "<> ExportString[rad,"RawJSON","Compact"->True]   <>
@@ -88,7 +87,7 @@ WMGraphics3DToJSON[g_Point]:= Module[{coords,json},
                                       0, coords={{0,0,0}},
 				      1, coords=g[[1]]
 				      ];
-			       	 If[Length[coords[[1]]]!=3,coords={coords}];
+			         If[Length[coords[[1]]]!=3,coords={coords}];
 			         coords = Table[{c,Null},{c,coords}];
 				 json="{\"type\": \"point\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
 				          ", \"color\": "<>facecolor<>"}";					 
@@ -101,7 +100,7 @@ WMGraphics3DToJSON[g_Line]:= Module[{coords,json},
                                       0, coords={{0,0,0}},
 				      1, coords=g[[1]]
 				      ];
-			       	 If[Length[coords[[1]]]!=3,coords={coords}];
+			         If[Length[coords[[1]]]!=3,coords={coords}];
 			         coords = Table[{c,Null},{c,coords}];
 				 json="{\"type\": \"line\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
 				          ", \"color\": "<>edgecolor<>"}";
@@ -115,7 +114,7 @@ WMGraphics3DToJSON[g_Polygon]:= Module[{coords,json},
                                       0, coords={{0,0,0}},
 				      1, coords=g[[1]]
 				      ];
-			       	 If[Length[coords[[1]]]!=3,coords={coords}];
+			         If[Length[coords[[1]]]!=3,coords={coords}];
 			         coords = Table[{c,Null},{c,coords}];
 				 json="{\"type\": \"polygon\", \"coords\":"<> ExportString[coords,"RawJSON","Compact"->True]  <>
 				          ", \"faceColor\": "<>facecolor<>"}";
@@ -181,7 +180,7 @@ WMGraphics3DToJSON[g_Graphics3D]:= Module[{viewpoint, args, mmaelems,elem, mmaop
    axes = "\"hasaxes\": [" <> axes[[1]]<>", " <> axes[[2]]<>", " <> axes[[3]]<>"]";
    range = (PlotRange/.mmaoptions);
    range = If[ToString[range]=="PlotRange",{{0,1},{0,1},{0,1}},range];
-   extent = "\"extent\": {\"xmin\":"<> 	ExportString[range[[1]][[1]],"RawJSON"]<>
+   extent = "\"extent\": {\"xmin\":"<>    ExportString[range[[1]][[1]],"RawJSON"]<>
                          ", \"xmax\": "<> ExportString[range[[1]][[2]],"RawJSON"]<>
 			 ", \"ymin\": "<> ExportString[range[[2]][[1]],"RawJSON"]<>
 			 ", \"ymax\": "<> ExportString[range[[2]][[2]],"RawJSON"]<>
