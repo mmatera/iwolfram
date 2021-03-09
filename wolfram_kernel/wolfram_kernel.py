@@ -305,30 +305,43 @@ class WolframKernel(ProcessMetaKernel):
         return cmd
 
     def stream_handler(self, strm):
+        # If comes from mathics, fix the extra spaces in
+        # messages and Print output
+        empty_buffer = (len(self.bufferout) == 0)
         if self.kernel_type == "mathics" and strm.strip() != "":
             # startpos = len('Out[{0}]= '.format(self.execution_count))
-            if strm[0] not in [" ", "\t"] and strm.strip():
-                msg = strm.split("\n")[0]
-                strm = "M:" + str(len(msg)) + ":" + strm
-            else:
-                strm = strm.lstrip()
-            print("strm="+strm)
+            # Remove empty lines before a message
+            while empty_buffer:
+                strm2 = strm.split("\n",1)
+                if len(strm2) == 1:
+                    break
+                line, strm2 = strm2
+                line = line.strip()
+                if len(line) > 0:
+                    break
+                strm = strm2
 
-        if len(self.bufferout) == 0:
-            if len(strm.strip()) == 0:
-                return  "No es una vaca Tengo una vaca lechera"
+            # Check if we have something
+            if strm[1] not in [" ", "\t"] and strm.strip():
+                msg = strm.split("\n", 1)[0]
+                strm = "M:" + str(len(msg)) + ":" + strm
+
+        if empty_buffer:
+            strm = strm.lstrip()
+            if len(strm.rstrip()) == 0:
+                return
             else:
                 if strm[0] != 'M' and strm[0] != 'P' and  \
-                   not(len(strm) >= 4 and strm.strip()[:4] == "Out["):
-                    print("### "+ strm)
-                    return "???????????????????"
+                   not(len(strm) >= 4 and strm[:4] == "Out["):
+                    print("weird output:" + strm)
+                    return
         self.bufferout = self.bufferout + strm + "\n"
         offset = 0
         while len(self.bufferout) > offset and \
               self.bufferout[offset] in ("\n", " "):
             offset = offset + 1
-            if len(self.bufferout) == offset:
-                return  "Tengo una vaca lechera"
+            if len(self.bufferout) >= offset:
+                return
         idx = 2 + offset
         if self.bufferout[offset:idx] == "P:":
             while self.bufferout[idx] != ":":
@@ -337,11 +350,11 @@ class WolframKernel(ProcessMetaKernel):
             idx = idx + 1
             endpos = idx + int(lenmsg) + 1
             if len(self.bufferout) < endpos:
-                return "asdasdasdsadsad"
+                return
             else:
                 msg = self.bufferout[idx:endpos]
                 self.bufferout = self.bufferout[endpos:]
-                print("Mensaje: " + msg)
+                print(msg)
         elif self.bufferout[offset:idx] == "M:":
             while self.bufferout[idx] != ":":
                 idx = idx + 1
@@ -349,7 +362,7 @@ class WolframKernel(ProcessMetaKernel):
             idx = idx + 1
             endpos = idx + int(lenmsg) + 1
             if len(self.bufferout) < endpos:
-                return "---s-as-a-a-a-a"
+                return
             else:
                 msg = self.bufferout[idx:endpos]
                 self.bufferout = self.bufferout[endpos:]
@@ -362,19 +375,16 @@ class WolframKernel(ProcessMetaKernel):
                     for p in range(len(msg)):
                         if msg[p] == ":":
                             break
-                    print("sending error MMASyntaxError")
                     self.Error(MMASyntaxError(msg[0:p], -1, msg[p+1:]))
                 elif msg[0:11] == "Power::infy":
-                    print("sending error Power::infy")
                     self.Error(msg)
                 elif msg[0:18] == "OpenWrite::noopen":
-                    print("sending error noopen")
                     self.Error(msg)
                 else:
                     msg = msg.strip()
                     if len(msg)!=0:
                         self.Error(msg)
-        return "bbjajajajaaj"
+        return
 
     def print(self, msg):
         self.send_response(self.iopub_socket, 'stream',
@@ -416,7 +426,7 @@ class WolframKernel(ProcessMetaKernel):
             self.open_envel = "ToExpression[\"Identity["
             self.close_envel = "]\"]"
             cmdline = self.language_info['exec'] + \
-                      " --colors NOCOLOR --persist '" + \
+                      " --colors NOCOLOR --no-readline --persist '" + \
                       self.initfilename + "'"
 
         self.myspawner = spawnu(cmdline, errors="ignore", echo=False)
