@@ -207,7 +207,7 @@ JupyterReturn3DThree[v_]:= "3d:" <> "data:json/graphics3d;base64," <>
 		      StringReplace[ExportString[Graphics3DToJSON[v],"Base64"] ,"\n"->""];
 
 JupyterReturn3DImage[v_]:=JupyterReturnImage[v]  <>  ":" <> "- graphics3D -"
-JupyterReturn3D=JupyterReturn3DThree;
+JupyterReturn3D=JupyterReturn3DImage;
 
 
 
@@ -233,6 +233,7 @@ JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[
 If[StringTake[$Version,{1,7}] == "Mathics",
    (*Print["Defining system dependent expressions for mathics"];*)
    (*Support for functions that are not currently available in mathics*)
+   LoadModule["pymathics.asy"];
    Unprotect[WriteString];
    WriteString[OutputStream["stdout", 1],x_]:=System`Print[x];
    Protect[WriteString];
