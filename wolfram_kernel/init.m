@@ -28,10 +28,12 @@ InteractiveGraphics3D["On"]:=(JupyterReturn3D=JupyterReturn3DThree);
 InteractiveGraphics3D["Off"]:=(JupyterReturn3D=JupyterReturn3DImage);
 
 
-SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
+SetImageOutputFormat[format_]:=(If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
                                                 If[format=="jpg",JupyterReturnImage = JupyterReturnBase64JPG,
                                                 If[format=="png", JupyterReturnImage = JupyterReturnBase64PNG,
                                                 Print["`format` should be one of \"svg\", \"png\" or \"jpg\" "]]]];
+				If[JupyterReturn3D==JupyterReturn3DImage,InteractiveGraphics3D["Off"]];)
+
 ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg",If[JupyterReturnImage==JupyterReturnBase64JPG,"jpg","png"]];
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;];
 JupyterPrePrintFunction[v_]:=(WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]);
@@ -206,7 +208,7 @@ Graphics3DToJSON = If[Mathics, MathicsGraphics3DToJSON, WMGraphics3DToJSON];
 JupyterReturn3DThree[v_]:= "3d:" <> "data:json/graphics3d;base64," <>
 		      StringReplace[ExportString[Graphics3DToJSON[v],"Base64"] ,"\n"->""];
 
-JupyterReturn3DImage[v_]:=JupyterReturnImage[v]  <>  ":" <> "- graphics3D -"
+JupyterReturn3DImage[v_]:=JupyterReturnBase64PNG[v]  <>  ":" <> "- graphics3D -";
 JupyterReturn3D=JupyterReturn3DImage;
 
 

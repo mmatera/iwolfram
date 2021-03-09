@@ -332,7 +332,7 @@ class WolframKernel(ProcessMetaKernel):
             def msg_filter(s):
                 if s == "":
                     return None
-                if s[1] not in ("\t", " ") and s.strip():
+                if s[1] not in ("\t", " ") and s.strip() and s.find("::",0,20)>0:
                     return "M:" + str(len(s)) + ":" + s
                 return s
 
@@ -348,7 +348,11 @@ class WolframKernel(ProcessMetaKernel):
                     and strm[0] != "P"
                     and not (len(strm) >= 4 and strm[:4] == "Out[")
                 ):
-                    print("weird output:" + strm)
+                    strm = strm.split("\n")
+                    for s in strm:
+                        if s.lstrip()[:4] == "Out[":
+                            break
+                        print(s)
                     return
         self.bufferout = self.bufferout + strm + "\n"
         offset = 0
@@ -1134,22 +1138,6 @@ class WolframKernel(ProcessMetaKernel):
                     self.Display(Javascript(jscommands))
                     return "    " + outputtext[(pp + 1) :]
 
-        if outputtext[:4] == "svg:":
-            for p in range(len(outputtext) - 4):
-                pp = p + 4
-                if outputtext[pp] == ":":
-                    start = pp + 21
-                    end = outputtext.find(":", start)
-                    outputtext = base64.standard_b64decode(
-                        outputtext[pp + 21 : end]
-                    ).decode("utf-8")
-                    if outputtext[:25] == "data:image/svg+xml;base64":
-                        outputtext = base64.standard_b64decode(outputtext[25:]).decode(
-                            "utf-8"
-                        )
-                    self.Display(SVG(outputtext))
-                    return outputtext[(end + 1) :]
-
         if outputtext[:6] == "image:":
             for p in range(len(outputtext) - 6):
                 pp = p + 6
@@ -1159,7 +1147,7 @@ class WolframKernel(ProcessMetaKernel):
                     self.Display(Image(outputtext[6:pp]))
                     return outputtext[(pp + 1) :]
 
-        if outputtext[:4] in ["jpg:", "png:"]:
+        if outputtext[:4] in ["jpg:", "png:", "svg:"]:
             for p in range(len(outputtext) - 18):
                 pp = p + 18
                 if outputtext[pp] == ":":
@@ -1171,6 +1159,21 @@ class WolframKernel(ProcessMetaKernel):
                         )
                     )
                     return outputtext[(pp + 1) :]
+        if outputtext[:4] == "svg:":
+            print("postprocessing svg"+outputtext)
+            if len(outputtext)>9 and outputtext[4:9]=="data:":
+                start=30
+                end = outputtext.find(":", start)
+            else:
+                start=4
+            end = outputtext.find(":", start)
+            print("start="+str(start)+" end="+str(end))
+            svgbase64 = outputtext[start:end]
+            svg = base64.b64decode(svgbase64).decode("utf8")
+            print("svgcode=",svg)
+            self.Display(SVG(svg))
+            return outputtext[(end + 1) :]
+
 
         if outputtext[:4] == "wav:":
             self.Display(Audio(url=outputtext[4:], autoplay=False, embed=True))
