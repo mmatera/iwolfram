@@ -100,7 +100,7 @@ if wmmexec is None:
                 break
         except Exception:
             continue
-wmmexec = None
+
 if wmmexec is None:
     print("trying with Mathics")
     candidates =  [os.path.join(path, 'mathics' + ((os.path.extsep + 'exe') if os.name == 'nt' else ''))

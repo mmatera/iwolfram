@@ -30,7 +30,8 @@ InteractiveGraphics3D["Off"]:=(JupyterReturn3D=JupyterReturn3DImage);
 
 SetImageOutputFormat[format_]:=If[format=="svg",JupyterReturnImage = JupyterReturnBase64SVG,
                                                 If[format=="jpg",JupyterReturnImage = JupyterReturnBase64JPG,
-                                                JupyterReturnImage = JupyterReturnBase64PNG]];
+                                                If[format=="png", JupyterReturnImage = JupyterReturnBase64PNG,
+                                                Print["`format` should be one of \"svg\", \"png\" or \"jpg\" "]]]];
 ImageOutputFormat[]:=If[JupyterReturnImage == JupyterReturnBase64SVG,"svg",If[JupyterReturnImage==JupyterReturnBase64JPG,"jpg","png"]];
 If[StringTake[$Version,{1,7}] == "Mathics", Mathics=True; Print["Running Mathics"]; , Mathics=False;];
 JupyterPrePrintFunction[v_]:=(WriteString[JupyterSTDOUT,"\nOut["<>ToString[$Line]<>"]= " <> JupyterReturnValue[v]<>"\n"]);
@@ -52,7 +53,7 @@ JupyterReturnImageFileJPG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure
 				   ]
 
 JupyterReturnImageFilePNG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".png"},
-				    Export[fn,v,"png",ImageSize->Jupyter`imagewidth];
+				    Export[fn,v,"PNG",ImageSize->Jupyter`imagewidth];
 				    "image:" <> fn
 				   ]
 
@@ -63,7 +64,7 @@ JupyterReturnBase64JPG[v_]:= "jpg:" <> "data:image/jpg;base64," <>
                                   StringReplace[ExportString[ExportString[v,"jpg", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <>
-                                  StringReplace[ExportString[ExportString[v,"png", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
+                                  StringReplace[ExportString[ExportString[v,"PNG", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 
 
@@ -232,9 +233,6 @@ JupyterReturnValue[v_Sound]:= "wav:"<> "data:audio/wav;base64," <> ExportString[
 If[StringTake[$Version,{1,7}] == "Mathics",
    (*Print["Defining system dependent expressions for mathics"];*)
    (*Support for functions that are not currently available in mathics*)
-   ExportString[expr_,"Base64"]:= (Export[Jupyter`tmpdir<>"/currexpr.txt", expr,"Base64"];Import[Jupyter`tmpdir<>"/currexpr.txt"]);
-   ExportString[v_Graphics, "SVG", opts___]:=Module[{chain}, chain=v//MathMLForm//ToString;StringTake[chain, {49,-11}]];
-   ExportString[v_Graphics3D, "SVG", opts___]:="string:"<>ExportString["Graphics3D Not supported yet...", "Base64"];
    Unprotect[WriteString];
    WriteString[OutputStream["stdout", 1],x_]:=System`Print[x];
    Protect[WriteString];
