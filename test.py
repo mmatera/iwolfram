@@ -31,7 +31,7 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
     # Samples of code which should generate a rich display output, and
     # the expected MIME type
     # TODO
-    code_display_data = [{"code": "Plot[x,{x,0,1}]", "mime": "image/svg+xml"}]
+    code_display_data = [{"code": "Plot[x,{x,0,1}]", "mime": "image/png"}]
 
     # Tab completions: in each dictionary, text is the input, which it will
     # try to complete from the end of. matches is the collection of results
