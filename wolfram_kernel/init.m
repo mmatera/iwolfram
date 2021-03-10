@@ -242,7 +242,7 @@ If[StringTake[$Version,{1,7}] == "Mathics",
    Global`Print[s_] := WriteString[OutputStream["stdout", 1],
    "\nP:" <> ToString[StringLength[ToString[s]]] <> ":" <> ToString[s]<>"\n\n"];
    (******)
-   JupyterReturnImage = JupyterReturnBase64SVG;
+   JupyterReturnImage = JupyterReturnBase64PNG;
    JupyterReturnValue[v_String]:= "string:"<> ExportString[v, "Base64"];
    JupyterReturnExpressionTeX[v_]:=( texstr=StringReplace[ToString[TeXForm[v]],"\n"->" "];
 				     "tex:"<> ExportString[ToString[StringLength[texstr]]<>":"<> texstr<>":"<>

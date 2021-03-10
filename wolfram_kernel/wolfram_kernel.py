@@ -250,6 +250,7 @@ class WolframKernel(ProcessMetaKernel):
         elif starttext[:21] == "Welcome to Expreduce!":
             self.kernel_type = "expreduce"
         else:
+            print(starttext)
             raise ValueError
         return self.kernel_type
 
