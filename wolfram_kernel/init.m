@@ -46,26 +46,26 @@ JupyterReturnValue[v_Association]:= "string:"<> ExportString[InputForm@v, "Base6
 *)
 JupyterReturnImageFileSVG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".svg"},
 				    Export[fn, v, "SVG",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn
+				    "svg:" <> fn
 				   ];
 
 JupyterReturnImageFileJPG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".jpg"},
 				    Export[fn,v,"jpg",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn
+				    "jpg:" <> fn
 				   ]
 
 JupyterReturnImageFilePNG[v_]:= Module[{ fn = Jupyter`tmpdir <> "/session-figure"<>ToString[$Line]<>".png"},
 				    Export[fn,v,"PNG",ImageSize->Jupyter`imagewidth];
-				    "image:" <> fn
+				    "png:" <> fn
 				   ]
 
 JupyterReturnBase64SVG[v_]:= "svg:" <> "data:image/svg+xml;base64," <>
                                   StringReplace[ExportString[ExportString[v,"SVG", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
-JupyterReturnBase64JPG[v_]:= "jpg:" <> "data:image/jpg;base64," <>
+JupyterReturnBase64JPG[v_]:= "image:" <> "data:image/jpg;base64," <>
                                   StringReplace[ExportString[ExportString[v,"jpg", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
-JupyterReturnBase64PNG[v_]:= "png:" <> "data:image/png;base64," <>
+JupyterReturnBase64PNG[v_]:= "image:" <> "data:image/png;base64," <>
                                   StringReplace[ExportString[ExportString[v,"PNG", ImageSize->Jupyter`imagewidth],"Base64"],"\n"->""]
 
 

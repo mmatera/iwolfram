@@ -29,12 +29,12 @@ class MyKernelTests(jupyter_kernel_test.KernelTests):
         {'code': "1+2+4", 'result': "7"}
     ]
 
-    
+
     # Samples of code which should generate a rich display output, and
     # the expected MIME type
     # TODO
     code_display_data = [
-        {'code': "Plot[x,{x,0,1}]", 'mime': "image/svg+xml"}
+        {'code': "Plot[x,{x,0,1}]", 'mime': "text/html"}
     ]
 
 

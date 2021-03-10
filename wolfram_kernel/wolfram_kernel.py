@@ -332,7 +332,12 @@ class WolframKernel(ProcessMetaKernel):
             def msg_filter(s):
                 if s == "":
                     return None
-                if s[1] not in ("\t", " ") and s.strip() and s.find("::",0,20)>0:
+                if (
+                    len(s) > 2
+                    and s[1] not in ("\t", " ")
+                    and s.strip()
+                    and s.find("::", 0, 20) > 0
+                ):
                     return "M:" + str(len(s)) + ":" + s
                 return s
 
@@ -1095,7 +1100,6 @@ class WolframKernel(ProcessMetaKernel):
                         + htmlstr
                         + "</div>"
                     )
-                    #                    self.Display(HTML(htmlstr))
                     return HTML(htmlstr)
         if outputtext[:4] == "tex:":
             while outputtext[-1] == "\n":
@@ -1139,41 +1143,47 @@ class WolframKernel(ProcessMetaKernel):
                     return "    " + outputtext[(pp + 1) :]
 
         if outputtext[:6] == "image:":
-            for p in range(len(outputtext) - 6):
-                pp = p + 6
-                if outputtext[pp] == ":":
-                    # print("sending image: ")
-                    # print(outputtext[6:pp])
-                    self.Display(Image(outputtext[6:pp]))
-                    return outputtext[(pp + 1) :]
+            p = outputtext.find(":", 11)
+            data = outputtext[6:p]
+            fmt = data[11:14]
+            data = data[data.find(",", 14) + 1 :]
+            data = base64.b64decode(data)
+            self.Display(Image(data=data))
+            return outputtext[(p + 1) :]
+
+        if outputtext[:4] == "svg:":
+            p = outputtext.find(":", 9)
+            data = outputtext[4:p]
+            data = data[data.find(",", 14) + 1 :]
+            data = base64.b64decode(data)
+            self.Display(SVG(data=data))
+            return outputtext[(p + 1) :]
 
         if outputtext[:4] in ["jpg:", "png:", "svg:"]:
-            for p in range(len(outputtext) - 18):
-                pp = p + 18
-                if outputtext[pp] == ":":
-                    self.Display(
-                        HTML(
-                            "<center><img class='unconfined' src=\""
-                            + outputtext[4:pp]
-                            + '"></img></center>'
-                        )
-                    )
-                    return outputtext[(pp + 1) :]
+            if len(outputtext) > 9 and outputtext[4:9] == "data:":
+                p = outputtext.find(":", 9)
+                data = outputtext[4:p]
+            else:
+                p = outputtext.find(":", 4)
+                data = "data:image/" + outputtext[:4] + ";base64," + outputtext[4:p]
+            self.Display(
+                HTML(
+                    "<center><img class='unconfined' src='" + data + "'></img></center>"
+                )
+            )
+            return outputtext[(p + 1) :]
         if outputtext[:4] == "svg:":
-            print("postprocessing svg"+outputtext)
-            if len(outputtext)>9 and outputtext[4:9]=="data:":
-                start=30
+            if len(outputtext) > 9 and outputtext[4:9] == "data:":
+                start = 30
                 end = outputtext.find(":", start)
             else:
-                start=4
+                start = 4
             end = outputtext.find(":", start)
-            print("start="+str(start)+" end="+str(end))
             svgbase64 = outputtext[start:end]
             svg = base64.b64decode(svgbase64).decode("utf8")
-            print("svgcode=",svg)
+            print("svgcode=", svg)
             self.Display(SVG(svg))
             return outputtext[(end + 1) :]
-
 
         if outputtext[:4] == "wav:":
             self.Display(Audio(url=outputtext[4:], autoplay=False, embed=True))
