@@ -11,6 +11,7 @@ matrix:
 before_install:
   - sudo apt-get update  && sudo apt-get install  python3-pip asymptote llvm-10 llvm-10-dev
   - python --version
+  - LLVM_CONFIG=/usr/bin/llvm-config-10  CXXFLAGS=-fPIC python -m pip install llvmlite
   - pip3 install numpy
   - pip3 install git+https://github.com/mmatera/mathics
   - pip3 install ipywidgets
