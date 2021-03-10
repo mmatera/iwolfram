@@ -45,7 +45,6 @@ def get_start_text(cmd):
         return ""
     # only head is required, thus crop
     # strip removes leading LF or CR+LF in case of the mathics banner
-    print("starttext='''", starttext, "'''")
     return starttext.strip()
 
 # As default, look first if wolfram mma is installed. Otherwise, use mathics.
@@ -79,7 +78,6 @@ if wmmexec is None:
     for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
-            print(starttext)
             if starttext[:11] == "Mathematica":
                 print("MathKernel (Wolfram version) found at " + candidate)
                 wmmexec = candidate
@@ -93,7 +91,6 @@ if wmmexec is None:
     for candidate in candidates:
         try:
             starttext = get_start_text(candidate)
-            print(starttext)
             if starttext[:7] == "Wolfram":
                 print("MathKernel (Wolfram version) found at " + candidate)
                 wmmexec = candidate
@@ -113,7 +110,6 @@ if wmmexec is None:
             starttext = get_start_text(candidate)
             if starttext == "":
                 continue
-            print("Start text:<<",starttext,">>")
             if starttext[:7] == "Mathics":
                 print("Mathics version found at " + candidate)
                 wmmexec = candidate
@@ -184,9 +180,7 @@ class install_with_kernelspec(install):
             kernel_json = WolframKernel.kernel_json
             kernel_js = WolframKernel.kernel_js
             kernel_spec_manager = KernelSpecManager()
-            log.info('Writing kernel spec in')
             kernel_spec_path = write_kernel_spec(overrides=kernel_json)
-            log.info(kernel_spec_path)
             with open(kernel_spec_path+"/kernel.js","w",encoding="utf-8") as jsfile:
                  jsfile.write(kernel_js)
 
