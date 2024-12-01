@@ -69,3 +69,4 @@ computer where the Jupyter Notebook server will run, and to set
 xvfb-run -a -s "-screen 0 640x480x24" <path_to_the_mma_kernel_executable>/MathKernel
 ```
 as the the kernel backend invocation command.
+
