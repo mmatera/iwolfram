@@ -21,11 +21,12 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        brew install llvm@12
-        LLVM_CONFIG=/usr/local/Cellar/llvm@12/12.0.1_2/bin/llvm-config pip install llvmlite
+        brew install llvm@14
+	ls /usr/local/Cellar/llvm@14
+        LLVM_CONFIG=/usr/local/Cellar/llvm@14/14.0.1_2/bin/llvm-config pip install llvmlite
         python -m pip install --upgrade pip
         python -m pip install wheel
-        pip install -e git://github.com/mmatera/mathics#egg=Mathics3
+        python -m pip install -e git+https://github.com/Mathics3/mathics-core
         pip install ipywidgets
         pip install ipykernel
         pip install metakernel

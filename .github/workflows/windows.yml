@@ -25,7 +25,7 @@ jobs:
         pip install wheel
         choco install llvm
         set LLVM_DIR="C:\Program Files\LLVM"
-        pip install -e git://github.com/mmatera/mathics#egg=Mathics3
+	python -m pip install -e git+https://github.com/Mathics3/mathics-core
         pip install ipywidgets
         pip install ipykernel
         pip install metakernel
