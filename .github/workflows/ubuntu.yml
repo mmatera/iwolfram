@@ -29,7 +29,11 @@ jobs:
         pip install metakernel
         pip install jupyter_kernel_test
         pip install unittest2
-        pip install -e git://github.com/Mathics3/pymathics-asy#egg=pymathics-asy
+	git clone 
+        pip install -e https://github.com/Mathics3/pymathics-asy.git
+	cd pymathics-asy
+	pip install -e .
+	cd ..
     - name: Install IWolfram
       run: |
         python setup.py install 
