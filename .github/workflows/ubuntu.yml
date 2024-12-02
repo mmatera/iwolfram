@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
+        python-version: ['3.12', '3.11', '3.8', '3.9', '3.10']
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -23,13 +23,17 @@ jobs:
         sudo apt-get update -qq && sudo apt-get install -qq liblapack-dev llvm-dev
         python -m pip install --upgrade pip
         pip install wheel
-        pip install -e git://github.com/mmatera/mathics#egg=Mathics3
+        python -m pip install -e git+https://github.com/Mathics3/mathics-core#egg=Mathics3[full]
         pip install ipywidgets
         pip install ipykernel
         pip install metakernel
         pip install jupyter_kernel_test
         pip install unittest2
-        pip install -e git://github.com/Mathics3/pymathics-asy#egg=pymathics-asy
+	git clone 
+        pip install -e https://github.com/Mathics3/pymathics-asy.git
+	cd pymathics-asy
+	pip install -e .
+	cd ..
     - name: Install IWolfram
       run: |
         python setup.py install 
