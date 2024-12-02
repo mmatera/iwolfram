@@ -699,6 +699,9 @@ class WolframKernel(ProcessMetaKernel):
             output = self.wrapper.run_command(
                 code.rstrip(), timeout=-1, stream_handler=stream_handler
             )
+	    # Maybe strip a leading space.
+            if output[0] == ' ':
+                output = output[1:]
             # TODO:  instead of proccess_response, it would be better
             # to capture the prints and warnings at the moment they are sended.
             output = self.process_response(output)
